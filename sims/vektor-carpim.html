@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Skaler ve Vektörel Çarpım · MaLeTiLabs</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+<script src="../assets/core.js"></script>
+<script src="../assets/vec.js"></script>
+</head>
+<body>
+
+<header class="bar">
+  <div class="wrap">
+    <a class="logo" href="../index.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 12c2.5-6 5-6 7.5 0s5 6 7.5 0 3.5-4 5-2"/><circle cx="12" cy="12" r="10.5" stroke-opacity=".35"/></svg>
+      <span>MaLeTi<em>Labs</em></span>
+    </a>
+    <nav><a href="../index.html#fizik1">← Fizik 1</a></nav>
+    <button class="icon-btn" data-theme-toggle aria-label="Temayı değiştir">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M1 12h2M21 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4"/></svg>
+    </button>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="sim-title">
+    <div><span class="tag">Fizik 1 · Hafta 01</span><h1>Skaler ve Vektörel Çarpım</h1></div>
+    <span class="tag" id="formula"></span>
+  </div>
+  <div class="sim-layout">
+    <div class="stage" id="stage"><canvas id="cv"></canvas></div>
+    <aside class="panel">
+      <div class="seg" id="mode">
+        <button data-v="dot">Skaler A·B</button>
+        <button data-v="cross">Vektörel A×B</button>
+      </div>
+      <label class="check"><input type="checkbox" id="snap" checked> Izgaraya yapıştır</label>
+      <div class="calc" id="calc"></div>
+      <div class="row">
+        <button class="btn ghost" id="reset">Sıfırla</button>
+        <button class="btn ghost" id="fs">Tam ekran</button>
+      </div>
+      <p class="note" id="note"></p>
+    </aside>
+  </div>
+</main>
+
+<script>
+const S = urlState({ ax: 5, ay: 1, bx: 2, by: 4, islem: "dot" });
+const snap = document.getElementById("snap");
+segment("mode", () => S.islem, (v) => { S.islem = v; S.save(); });
+document.getElementById("reset").onclick = () => { Object.assign(S, { ax: 5, ay: 1, bx: 2, by: 4 }); S.save(); };
+document.getElementById("fs").onclick = () => FR.fullscreen(document.getElementById("stage"));
+
+const P = Plane(document.getElementById("cv"));
+P.snap = () => snap.checked;
+P.draggable(
+  () => [{ id: "B", p: { x: S.bx, y: S.by } }, { id: "A", p: { x: S.ax, y: S.ay } }],
+  (id, p) => { if (id === "A") { S.ax = p.x; S.ay = p.y; } else { S.bx = p.x; S.by = p.y; } },
+  S.save
+);
+const calc = document.getElementById("calc"), note = document.getElementById("note"), formula = document.getElementById("formula");
+const zero = { x: 0, y: 0 };
+
+// ⊙ sayfadan dışarı, ⊗ sayfanın içine
+function zSymbol(p, out, color) {
+  const s = P.toPx(p), r = 11, ctx = P.ctx;
+  ctx.save(); ctx.strokeStyle = ctx.fillStyle = color; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.arc(s.x, s.y, r, 0, 7); ctx.stroke();
+  if (out) { ctx.beginPath(); ctx.arc(s.x, s.y, 3, 0, 7); ctx.fill(); }
+  else {
+    const d = r * 0.62;
+    ctx.beginPath(); ctx.moveTo(s.x - d, s.y - d); ctx.lineTo(s.x + d, s.y + d);
+    ctx.moveTo(s.x + d, s.y - d); ctx.lineTo(s.x - d, s.y + d); ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function frame() {
+  P.layout(0.4, 0.65);
+  const c = FR.colors(), ctx = P.ctx;
+  P.grid(c);
+  const A = { x: S.ax, y: S.ay }, B = { x: S.bx, y: S.by };
+  const mA = V.mag(A), mB = V.mag(B), d = V.dot(A, B), x = V.cross(A, B);
+  const ok = mA > 0.005 && mB > 0.005;
+  const phi = ok ? Math.atan2(x, d) * 180 / Math.PI : 0;   // A'dan B'ye işaretli açı
+  const f = V.fmt;
+
+  if (S.islem === "dot" && ok) {
+    // B'nin A doğrultusu üzerine izdüşümü
+    const k = d / (mA * mA), proj = { x: A.x * k, y: A.y * k }, far = 40 / mA;
+    P.dashed({ x: -A.x * far, y: -A.y * far }, { x: A.x * far, y: A.y * far }, c.line, 0.9);
+    P.dashed(B, proj, c.accent2);
+    P.arrow(zero, proj, c.ink, { width: 5, alpha: 0.85, label: "|B| cos φ", side: -1 });
+  }
+  if (S.islem === "cross") {
+    const pts = [zero, A, V.add(A, B), B].map(P.toPx);
+    ctx.save(); ctx.fillStyle = c.ink; ctx.globalAlpha = 0.09;
+    ctx.beginPath(); pts.forEach((p) => ctx.lineTo(p.x, p.y)); ctx.closePath(); ctx.fill(); ctx.restore();
+    P.dashed(A, V.add(A, B), c.accent2); P.dashed(B, V.add(A, B), c.accent);
+    if (Math.abs(x) > 0.005) zSymbol({ x: (A.x + B.x) / 2, y: (A.y + B.y) / 2 }, x > 0, c.ink);
+  }
+  P.arrow(zero, A, c.accent, { width: 3, label: "A" });
+  P.arrow(zero, B, c.accent2, { width: 3, label: "B" });
+  if (ok && Math.abs(phi) > 1) P.arc(zero, 32, V.ang(A), V.ang(A) + phi, c.ink, "φ");
+  P.handle(A, c.accent); P.handle(B, c.accent2);
+
+  const ph = Math.abs(phi).toFixed(1);
+  if (S.islem === "dot") {
+    formula.textContent = "A·B = |A||B| cos φ";
+    calc.innerHTML =
+      `A·B = AₓBₓ + A_yB_y<br>= (${f(A.x)})(${f(B.x)}) + (${f(A.y)})(${f(B.y)}) = <b>${f(d)}</b><br>` +
+      `|A||B| cos φ = ${f(mA)} · ${f(mB)} · cos ${ph}° = <b>${f(d)}</b><br>φ = <b>${ph}°</b>`;
+    note.textContent = "Sonuç bir sayıdır (skaler). φ < 90° ise pozitif, φ = 90° ise sıfır, φ > 90° ise negatif.";
+  } else {
+    formula.textContent = "|A×B| = |A||B| sin φ";
+    calc.innerHTML =
+      `A×B = (AₓB_y − A_yBₓ) k̂<br>= ((${f(A.x)})(${f(B.y)}) − (${f(A.y)})(${f(B.x)})) k̂ = <b>${f(x)} k̂</b><br>` +
+      `|A×B| = |A||B| sin φ = ${f(mA)} · ${f(mB)} · sin ${ph}° = <b>${f(Math.abs(x))}</b><br>` +
+      `Yön: <b>${Math.abs(x) < 0.005 ? "–" : x > 0 ? "+z, sayfadan dışarı ⊙" : "−z, sayfanın içine ⊗"}</b>`;
+    note.textContent = "Büyüklük, A ve B'nin oluşturduğu paralelkenarın alanına eşittir. Yön sağ el kuralıyla bulunur.";
+  }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

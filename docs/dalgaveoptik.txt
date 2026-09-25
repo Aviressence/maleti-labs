@@ -1,0 +1,37 @@
+ Ders İçeriği
+Haftalar	Konular
+1. hafta	Titreşim hareketinin temel kavramlarını açıklar.
+2. hafta	Dalga Hareketi: Dalga tipleri, Bir boyutta ilerleyen dalgalar, Dalgaların üstüste binmesi ve girişim.
+3. hafta	DalgalHareketi (devam):Dalgaların yansıması ve geçişi, Harmonik dalgalar, Sicim üzerinde harmonik dalgalar, Harmonik dalgalarla taşınan enerji, Lineer dalga denklemi.
+4. hafta	Ses dalgaları: Ses dalgalarının hızı, Harmonik ses dalgaları, Harmonik ses dalgalarının enerjisi ve şiddeti, Desibel olarak ses düzeyi.
+5. hafta	Ses Dalgaları (devam): Küresel ve düzlemsel dalgalar, Doppler olayı
+6. hafta	Genel Tekrar ve Problem Çözümleri
+7. hafta	Üst Üste Binme ve Kararlı Dalgalar: Harmonik dalgaların Üst üste binmesi ve girişim, Kararlı dalgalar, İki ucu sabit telde kararlı dalgalar.
+8. hafta	Üst üste Bimme ve Kararlı Dalgalar (devam): Resonans, Hava sütunlarında kararlı dalgalar,
+9. hafta	Işığın Doğası ve Geometrik Optik Yasaları: Işığın doğası, Geometrik optikte ışın yaklaşımı, Yansıma, Kırılma, Kırılma indisi, Huygens prensibi, Dağılma ve prizmalar, Toplam iç yansıma,
+10. hafta	Genel Tekrar ve Problem Çözümleri
+11. hafta	Geometrik Optik: Düzlemsel aynaların oluşturduğu görüntüler, Küresel aynaların oluşturduğu görüntüler.
+12. hafta	Geometrik Optik: Kırılma ile oluşan görüntüler, İnce mercekler.
+13. hafta	Işık Dalgalarının Girişimi: Girişim koşulları: Young'ın çift yarık deneyi, Dalgaların fazör toplamı, Yansımaya bağlı faz değişimi, İnce filmlerde girişim
+14. hafta	Kırınım ve Kutuplanma: Kırınıma giriş, Tek yarıkta kırınım , Işık dalgalarının kutuplanması.
+ Öğretim Yöntem ve Teknikleri
+Öğretim Yöntemleri
+ Anlatım
+ Tartışma
+ Soru-Yanıt
+ Takım/Grup Çalışması
+ Sorun/Problem Çözme
+Öğretim Yeterlilikleri
+ Sorgulayan
+ Türkçeyi etkili kullanma
+ Takım halinde çalışabilme
+ Zamanı etkili kullanma
+ Eleştirel düşünebilme
+ Soyut analiz ve sentez yapma
+ Problem çözme
+ Kurumsal bilgiyi uygulamaya dönüştürme
+ Bilgiyi yönetme
+ Bağımsız çalışma
+ Organize etme ve planlama
+ Temel matematik becerileri
+ Karar verme becerisi

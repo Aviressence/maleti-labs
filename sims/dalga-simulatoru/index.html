@@ -1,0 +1,475 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Wave Simulator</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    Content Security Policy: scripts, styles and fonts only from this folder,
+    no network requests at all, and images only from embedded data. `file:`
+    is listed next to 'self' because browsers
+    disagree on whether 'self' covers sibling files when the page is opened by
+    double-clicking it.
+  -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' file:; style-src 'self' file:; font-src 'self' file:; img-src 'self' file: data: blob:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <meta name="referrer" content="no-referrer">
+  <meta name="theme-color" content="#222222">
+  <link rel="icon" href="assets/favicon.ico">
+  <!-- Fonts ship with the page (fonts/), so nothing is fetched from the network. -->
+  <link rel="stylesheet" href="fonts/fonts.css">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <!-- Icon sprite: simple shapes drawn for this project, inlined so they work offline. -->
+  <svg class="sprite" aria-hidden="true">
+    <symbol id="i-play" viewBox="0 0 24 24"><polygon points="7,4.5 19.5,12 7,19.5"/></symbol>
+    <symbol id="i-pause" viewBox="0 0 24 24"><rect x="6" y="5" width="4" height="14" rx="0.5"/><rect x="14" y="5" width="4" height="14" rx="0.5"/></symbol>
+    <symbol id="i-next" viewBox="0 0 24 24"><polygon points="5.5,5.5 15,12 5.5,18.5"/><rect x="16" y="5.5" width="2.5" height="13" rx="0.5"/></symbol>
+    <symbol id="i-restart" viewBox="0 0 24 24"><path d="M12 6.5A6.5 6.5 0 1 1 5.5 13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><polygon points="8,6.5 12.5,2.8 12.5,10.2"/></symbol>
+    <symbol id="i-chevron-right" viewBox="0 0 24 24"><polyline points="9.5,6 15.5,12 9.5,18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-chevron-left" viewBox="0 0 24 24"><polyline points="14.5,6 8.5,12 14.5,18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-menu" viewBox="0 0 24 24"><rect x="3.5" y="6" width="17" height="2.2" rx="1.1"/><rect x="3.5" y="10.9" width="17" height="2.2" rx="1.1"/><rect x="3.5" y="15.8" width="17" height="2.2" rx="1.1"/></symbol>
+    <symbol id="i-arrow-right" viewBox="0 0 24 24"><polygon points="10,7.5 14.5,12 10,16.5"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></symbol>
+  </svg>
+
+  <!-- Simulation -->
+  <main id="scene">
+    <canvas></canvas>
+    <!-- viewBox 0..1 with preserveAspectRatio="none" lets line positions be
+         plain normalised coordinates; non-scaling-stroke keeps them hairline. -->
+    <svg class="grid-overlay" viewBox="0 0 1 1" preserveAspectRatio="none" hidden></svg>
+    <div class="array-markers" hidden></div>
+    <div class="source-marker" hidden>
+      <div class="source-marker-ring"></div>
+      <div class="source-marker-dot"></div>
+    </div>
+    <div class="coord-readout" hidden></div>
+    <img class="gradient-legend" alt="" hidden>
+  </main>
+
+  <div id="error" class="error-panel" hidden></div>
+
+  <!-- Shown while a video renders -->
+  <div id="render-overlay" class="render-overlay" hidden>
+    <div class="render-panel" role="dialog" aria-modal="true" aria-labelledby="render-title">
+      <div id="render-title" class="render-title">Rendering video</div>
+      <div class="render-bar"><div class="render-bar-fill" id="render-fill"></div></div>
+      <div class="render-status" id="render-status">Starting</div>
+      <button type="button" class="text-button" id="btn-render-cancel">Cancel</button>
+    </div>
+  </div>
+
+  <!-- Toolbar -->
+  <aside id="toolbar">
+    <div class="top-container">
+      <a class="site-back" href="../../index.html#dalgalar">← MaLeTiLabs</a>
+      <div class="title">
+        Wave Simulator
+        <span class="remastered" data-text="REMASTERED">REMASTERED</span>
+      </div>
+      <div class="playback">
+        <button type="button" class="icon-button" id="btn-pause" aria-label="Pause" title="Pause (Space)">
+          <svg class="icon" aria-hidden="true"><use href="#i-pause"/></svg>
+        </button>
+        <button type="button" class="icon-button" id="btn-next" aria-label="Step forward" title="Step forward (N)">
+          <svg class="icon" aria-hidden="true"><use href="#i-next"/></svg>
+        </button>
+        <button type="button" class="icon-button" id="btn-restart" aria-label="Restart" title="Restart (R)">
+          <svg class="icon" aria-hidden="true"><use href="#i-restart"/></svg>
+        </button>
+        <button type="button" class="icon-button dock-button" id="btn-dock" aria-label="Move panel to the right" title="Move panel to the right">
+          <svg class="icon" aria-hidden="true"><use href="#i-chevron-right"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Background and gradient -->
+    <div class="field-group first-group">
+      <div class="field-container file-selects">
+        <input type="file" id="background-file" accept="image/png,image/jpeg,image/gif,image/webp,image/bmp" hidden>
+        <button type="button" class="file-select" id="background-select" aria-haspopup="menu" aria-expanded="false">
+          <span class="subtitle">Background</span>
+          <span class="select-title" id="background-name"></span>
+        </button>
+        <input type="file" id="gradient-file" accept="image/png,image/jpeg,image/gif,image/webp,image/bmp" hidden>
+        <button type="button" class="file-select" id="gradient-select" aria-haspopup="menu" aria-expanded="false">
+          <span class="subtitle">Gradient</span>
+          <span class="select-title" id="gradient-name"></span>
+        </button>
+      </div>
+      <div class="field-container hint" id="upload-error" hidden></div>
+    </div>
+
+    <!-- Shape parameters: only while a procedural shape is active -->
+    <section id="shape-section" hidden>
+      <div class="divider"></div>
+      <div class="field-group">
+        <div class="field-container section-label">Shape</div>
+
+        <div class="field-container range-container" data-visible="shapeHasSides">
+          <label class="range-label" for="shape-sides" id="shape-sides-label">Sides</label>
+          <input type="range" id="shape-sides" min="3" max="12" step="1" data-path="backgroundShape.sides" data-effect="shape">
+          <span class="range-value" data-label="backgroundShape.sides"></span>
+        </div>
+
+        <div class="field-container range-container" data-visible="shapeIsStar">
+          <label class="range-label" for="shape-inner">Inner radius</label>
+          <input type="range" id="shape-inner" min="0.1" max="0.9" step="0.05" data-path="backgroundShape.innerRatio" data-effect="shape">
+          <span class="range-value" data-label="backgroundShape.innerRatio" data-digits="2"></span>
+        </div>
+
+        <div class="field-container range-container" data-visible="shapeIsEllipse">
+          <label class="range-label" for="shape-stretch">Height / width</label>
+          <input type="range" id="shape-stretch" min="0.1" max="2" step="0.05" data-path="backgroundShape.stretch" data-effect="shape">
+          <span class="range-value" data-label="backgroundShape.stretch" data-digits="2"></span>
+        </div>
+
+        <div data-visible="shapeIsSlits">
+          <div class="field-container range-container">
+            <label class="range-label" for="slit-count">Slit count</label>
+            <input type="range" id="slit-count" min="1" max="8" step="1" data-path="backgroundShape.slitCount" data-effect="shape">
+            <span class="range-value" data-label="backgroundShape.slitCount"></span>
+          </div>
+          <div class="field-container range-container">
+            <label class="range-label" for="slit-width">Slit width</label>
+            <input type="range" id="slit-width" min="0.005" max="0.15" step="0.005" data-path="backgroundShape.slitWidth" data-effect="shape">
+            <span class="range-value" data-label="backgroundShape.slitWidth" data-digits="3"></span>
+          </div>
+          <div class="field-container range-container">
+            <label class="range-label" for="slit-spacing">Slit spacing</label>
+            <input type="range" id="slit-spacing" min="0.02" max="0.5" step="0.01" data-path="backgroundShape.slitSpacing" data-effect="shape">
+            <span class="range-value" data-label="backgroundShape.slitSpacing" data-digits="2"></span>
+          </div>
+        </div>
+
+        <div data-visible="shapeNotSlits">
+          <div class="field-container range-container">
+            <label class="range-label" for="shape-size">Size</label>
+            <input type="range" id="shape-size" min="0.05" max="1.4" step="0.05" data-path="backgroundShape.size" data-effect="shape">
+            <span class="range-value" data-label="backgroundShape.size" data-digits="2"></span>
+          </div>
+          <div class="field-container range-container">
+            <label class="range-label" for="shape-rotation">Rotation</label>
+            <input type="range" id="shape-rotation" min="0" max="360" step="1" data-path="backgroundShape.rotation" data-effect="shape">
+            <span class="range-value" data-label="backgroundShape.rotation" data-suffix="°"></span>
+          </div>
+        </div>
+
+        <div class="field-container range-container">
+          <label class="range-label" for="shape-alpha">Wall strength</label>
+          <input type="range" id="shape-alpha" min="0.05" max="1" step="0.05" data-path="backgroundShape.alpha" data-effect="shape">
+          <span class="range-value" data-label="backgroundShape.alpha" data-digits="2"></span>
+        </div>
+
+        <div data-visible="shapeNotSlits">
+          <div class="field-container checkbox-field">
+            <input type="checkbox" id="shape-hollow" data-path="backgroundShape.hollow" data-effect="shape">
+            <label for="shape-hollow">Hollow (edges only)</label>
+          </div>
+          <div class="field-container range-container" data-visible="shapeIsHollow">
+            <label class="range-label" for="shape-thickness">Wall thickness</label>
+            <input type="range" id="shape-thickness" min="0.005" max="0.2" step="0.005" data-path="backgroundShape.thickness" data-effect="shape">
+            <span class="range-value" data-label="backgroundShape.thickness" data-digits="3"></span>
+          </div>
+        </div>
+
+        <div class="field-container range-container" data-visible="shapeIsSlits">
+          <label class="range-label" for="barrier-thickness">Barrier thickness</label>
+          <input type="range" id="barrier-thickness" min="0.005" max="0.1" step="0.005" data-path="backgroundShape.thickness" data-effect="shape">
+          <span class="range-value" data-label="backgroundShape.thickness" data-digits="3"></span>
+        </div>
+
+        <div class="field-container checkbox-field">
+          <input type="checkbox" id="shape-invert" data-path="backgroundShape.invert" data-effect="shape">
+          <label for="shape-invert">Invert walls</label>
+        </div>
+
+        <div class="field-container text-field-label">Shape position</div>
+        <div class="labeled-field">
+          <label for="shape-x">x</label>
+          <input type="text" inputmode="decimal" id="shape-x" class="text-field" data-path="backgroundShape.x" data-effect="shape">
+        </div>
+        <div class="labeled-field">
+          <label for="shape-y">y</label>
+          <input type="text" inputmode="decimal" id="shape-y" class="text-field" data-path="backgroundShape.y" data-effect="shape">
+        </div>
+      </div>
+    </section>
+
+    <div class="divider"></div>
+    <div class="field-group">
+      <div class="field-container checkbox-field">
+        <input type="checkbox" id="energy" data-path="energy" data-effect="redraw">
+        <label for="energy">Average energy</label>
+      </div>
+      <div class="field-container radio-label">Boundary conditions</div>
+      <div class="field-container radio-row">
+        <input type="radio" id="boundary-0" name="boundary" value="0" data-path="boundary" data-effect="restart"><label for="boundary-0">Absorb</label>
+        <input type="radio" id="boundary-1" name="boundary" value="1" data-path="boundary" data-effect="restart"><label for="boundary-1">Reflect</label>
+        <input type="radio" id="boundary-2" name="boundary" value="2" data-path="boundary" data-effect="restart"><label for="boundary-2">Zero</label>
+      </div>
+      <div class="field-container range-container">
+        <label class="range-label" for="a-ceil">Alpha threshold</label>
+        <input type="range" id="a-ceil" min="0" max="1" step="0.05" data-path="aCeil" data-effect="save">
+        <span class="range-value" data-label="aCeil" data-digits="2"></span>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+    <div class="field-group">
+      <div class="field-container checkbox-field">
+        <input type="checkbox" id="show-gradient" data-path="showGradient" data-effect="save">
+        <label for="show-gradient">Show gradient legend</label>
+      </div>
+      <div data-visible="isDesktop">
+        <div class="field-container radio-label">Level of detail</div>
+        <div class="field-container radio-row">
+          <input type="radio" id="lod-1" name="lod" value="1" data-path="LOD" data-effect="restart"><label for="lod-1">High</label>
+          <input type="radio" id="lod-2" name="lod" value="2" data-path="LOD" data-effect="restart"><label for="lod-2">Medium</label>
+          <input type="radio" id="lod-3" name="lod" value="2.8" data-path="LOD" data-effect="restart"><label for="lod-3">Low</label>
+        </div>
+      </div>
+      <div class="field-container radio-label space-above">Speed</div>
+      <div class="field-container radio-row">
+        <input type="radio" id="speed-1" name="speed" value="1" data-path="speedDivider" data-effect="save"><label for="speed-1">Max</label>
+        <input type="radio" id="speed-3" name="speed" value="3" data-path="speedDivider" data-effect="save"><label for="speed-3">Medium</label>
+        <input type="radio" id="speed-8" name="speed" value="8" data-path="speedDivider" data-effect="save"><label for="speed-8">Slow</label>
+      </div>
+    </div>
+
+    <!-- Initial conditions -->
+    <div class="divider"></div>
+    <div class="field-group">
+      <div class="field-container section-label">Initial conditions</div>
+      <div class="field-container">
+        <select id="wave-type" aria-label="Initial condition">
+          <option value="0">Plane Wave</option>
+          <option value="1">Pulse</option>
+          <option value="2">Spherical wave</option>
+          <option value="3">Interactive Pulse</option>
+          <option value="4">Phased Array</option>
+        </select>
+      </div>
+
+      <!-- Plane wave -->
+      <div data-visible="isPlane">
+        <div class="field-container radio-label">Direction</div>
+        <div class="field-container radio-row">
+          <input type="radio" id="dir-0" name="direction" value="0" data-path="initialCondition.direction" data-effect="restart"><label for="dir-0">Left</label>
+          <input type="radio" id="dir-1" name="direction" value="1" data-path="initialCondition.direction" data-effect="restart"><label for="dir-1">Bottom</label>
+          <input type="radio" id="dir-2" name="direction" value="2" data-path="initialCondition.direction" data-effect="restart"><label for="dir-2">Right</label>
+          <input type="radio" id="dir-3" name="direction" value="3" data-path="initialCondition.direction" data-effect="restart"><label for="dir-3">Top</label>
+        </div>
+      </div>
+
+      <!-- Pulse / interactive shape -->
+      <div data-visible="hasPulseShape">
+        <div class="field-container radio-label">Shape</div>
+        <div class="field-container radio-row">
+          <input type="radio" id="pulse-0" name="pulse-shape" value="0" data-path="initialCondition.shape" data-effect="source"><label for="pulse-0">Circular</label>
+          <input type="radio" id="pulse-1" name="pulse-shape" value="1" data-path="initialCondition.shape" data-effect="source"><label for="pulse-1">Vertical</label>
+          <input type="radio" id="pulse-2" name="pulse-shape" value="2" data-path="initialCondition.shape" data-effect="source"><label for="pulse-2">Horizontal</label>
+        </div>
+      </div>
+
+      <!-- Phased array -->
+      <div data-visible="isPhased">
+        <div class="field-container radio-label">Layout</div>
+        <div class="field-container radio-row">
+          <input type="radio" id="pa-linear" name="pa-mode" value="linear" data-type="string" data-path="phasedArray.mode" data-effect="arrayMode"><label for="pa-linear">Linear array</label>
+          <input type="radio" id="pa-custom" name="pa-mode" value="custom" data-type="string" data-path="phasedArray.mode" data-effect="arrayMode"><label for="pa-custom">Custom</label>
+        </div>
+
+        <div data-visible="isLinearArray">
+          <div class="field-container range-container">
+            <label class="range-label" for="pa-count">Elements</label>
+            <input type="range" id="pa-count" min="1" max="16" step="1" data-path="phasedArray.count" data-effect="array">
+            <span class="range-value" data-label="phasedArray.count"></span>
+          </div>
+          <div class="field-container range-container">
+            <label class="range-label" for="pa-spacing">Spacing</label>
+            <input type="range" id="pa-spacing" min="0.1" max="2" step="0.05" data-path="phasedArray.spacing" data-effect="array">
+            <span class="range-value" data-label="phasedArray.spacing" data-digits="2" data-suffix=" λ"></span>
+          </div>
+          <div class="field-container range-container">
+            <label class="range-label" for="pa-steer">Steering angle</label>
+            <input type="range" id="pa-steer" min="-90" max="90" step="1" data-path="phasedArray.steer" data-effect="array">
+            <span class="range-value" data-label="phasedArray.steer" data-suffix="°"></span>
+          </div>
+          <div class="field-container range-container">
+            <label class="range-label" for="pa-angle">Array orientation</label>
+            <input type="range" id="pa-angle" min="0" max="180" step="1" data-path="phasedArray.angle" data-effect="array">
+            <span class="range-value" data-label="phasedArray.angle" data-suffix="°"></span>
+          </div>
+          <div class="field-container text-field-label">Array centre</div>
+          <div class="labeled-field">
+            <label for="pa-x">x</label>
+            <input type="text" inputmode="decimal" id="pa-x" class="text-field" data-path="phasedArray.x" data-effect="array">
+          </div>
+          <div class="labeled-field">
+            <label for="pa-y">y</label>
+            <input type="text" inputmode="decimal" id="pa-y" class="text-field" data-path="phasedArray.y" data-effect="array">
+          </div>
+          <div class="field-container hint" id="pa-wavelength"></div>
+          <div class="field-container hint">Steering 0° fires perpendicular to the array; positive angles turn the beam counter-clockwise. A mirror beam on the other side of the array is expected: a single row radiates both ways. At 0.5 λ or less there are never extra beams; wider spacing adds them (grating lobes) once the beam is steered. λ is measured in open space; inside a slower medium the waves are shorter. Drag on the canvas to move the array.</div>
+        </div>
+
+        <div data-visible="isCustomArray">
+          <div class="field-container hint">Drag a numbered marker to move that source. Phases are in degrees.</div>
+          <div id="source-list" class="source-list"></div>
+          <div class="field-container">
+            <button type="button" class="text-button" id="btn-add-source">Add source</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Position -->
+      <div data-visible="hasPosition">
+        <div class="field-container text-field-label">Position</div>
+        <div class="labeled-field" data-visible="showsX">
+          <label for="source-x">x</label>
+          <input type="text" inputmode="decimal" id="source-x" class="text-field" data-path="initialCondition.x" data-effect="source">
+        </div>
+        <div class="labeled-field" data-visible="showsY">
+          <label for="source-y">y</label>
+          <input type="text" inputmode="decimal" id="source-y" class="text-field" data-path="initialCondition.y" data-effect="source">
+        </div>
+      </div>
+
+      <div class="field-container" data-visible="hasDuration">
+        <label class="text-field-label" for="duration">Duration (frames)</label>
+        <input type="text" inputmode="decimal" id="duration" class="text-field" data-path="initialCondition.duration" data-effect="source">
+      </div>
+      <div class="field-container">
+        <label class="text-field-label" for="amplitude">Amplitude</label>
+        <input type="text" inputmode="decimal" id="amplitude" class="text-field" data-path="initialCondition.amplitude" data-effect="source">
+      </div>
+      <div class="field-container" data-visible="hasFrequency">
+        <label class="text-field-label" for="frequency">Frequency</label>
+        <input type="text" inputmode="decimal" id="frequency" class="text-field" data-path="initialCondition.frequency" data-effect="source">
+      </div>
+      <div class="field-container" data-visible="hasPulseShape">
+        <label class="text-field-label" for="sharpness">Sharpness</label>
+        <input type="text" inputmode="decimal" id="sharpness" class="text-field" data-path="initialCondition.sharpness" data-effect="source">
+      </div>
+    </div>
+
+    <!-- View -->
+    <div class="divider"></div>
+    <div class="field-group">
+      <div class="field-container section-label">View</div>
+      <div class="field-container range-container">
+        <label class="range-label" for="zoom">Zoom</label>
+        <input type="range" id="zoom" min="1" max="20" step="0.25" data-path="view.zoom" data-effect="view">
+        <span class="range-value" data-label="view.zoom" data-digits="2" data-suffix="x"></span>
+      </div>
+      <div class="field-container">
+        <button type="button" class="text-button" id="btn-reset-view">Reset view</button>
+      </div>
+      <div class="field-container hint">Scroll to zoom at the cursor, drag with the middle or right button to pan, double-click to reset.</div>
+    </div>
+
+    <!-- Share and export -->
+    <div class="divider"></div>
+    <div class="field-group">
+      <div class="field-container section-label">Share</div>
+      <div class="field-container">
+        <button type="button" class="text-button" id="btn-share">Copy link to this scene</button>
+      </div>
+      <div class="field-container">
+        <button type="button" class="text-button" id="btn-png">Save PNG</button>
+      </div>
+      <div class="field-container hint" id="share-warning" hidden>Uploaded images cannot travel in a link; the default is used instead.</div>
+      <div class="field-container hint">
+        Shortcuts: <b>Space</b> pause, <b>R</b> restart, <b>N</b> step, <b>G</b> grid, <b>0</b> reset view, <b>S</b> save PNG, <b>V</b> record video.
+      </div>
+    </div>
+
+    <!-- Video -->
+    <div class="divider"></div>
+    <div class="field-group">
+      <div class="field-container section-label">Video</div>
+      <div class="field-container">
+        <label class="text-field-label" for="video-seconds">Length (seconds)</label>
+        <input type="text" inputmode="decimal" id="video-seconds" class="text-field" data-path="video.seconds" data-effect="save">
+      </div>
+      <div class="field-container radio-label">Frame rate</div>
+      <div class="field-container radio-row">
+        <input type="radio" id="fps-30" name="video-fps" value="30" data-path="video.fps" data-effect="save"><label for="fps-30">30 fps</label>
+        <input type="radio" id="fps-60" name="video-fps" value="60" data-path="video.fps" data-effect="save"><label for="fps-60">60 fps</label>
+      </div>
+      <div class="field-container radio-label">Simulation speed</div>
+      <div class="field-container radio-row">
+        <input type="radio" id="vspeed-1" name="video-speed" value="1" data-path="video.speed" data-effect="save"><label for="vspeed-1">1x</label>
+        <input type="radio" id="vspeed-2" name="video-speed" value="2" data-path="video.speed" data-effect="save"><label for="vspeed-2">2x</label>
+        <input type="radio" id="vspeed-4" name="video-speed" value="4" data-path="video.speed" data-effect="save"><label for="vspeed-4">4x</label>
+      </div>
+      <div class="field-container checkbox-field">
+        <input type="checkbox" id="video-from-start" data-path="video.fromStart" data-effect="save">
+        <label for="video-from-start">Start from the beginning</label>
+      </div>
+      <div class="field-container button-row">
+        <button type="button" class="text-button" id="btn-render">Render video</button>
+        <button type="button" class="text-button" id="btn-record" aria-pressed="false">Record live</button>
+      </div>
+      <div class="field-container hint" id="video-hint" hidden></div>
+      <div class="field-container hint"><b>Render</b> computes the video as fast as your GPU allows, so you don't have to watch it. <b>Record live</b> captures what you see, including your clicks. Only the simulation is in the video, not the grid or markers.</div>
+    </div>
+
+    <!-- Grid -->
+    <div class="divider"></div>
+    <div class="field-group">
+      <div class="field-container section-label">Grid</div>
+      <div class="field-container checkbox-field">
+        <input type="checkbox" id="grid-show" data-path="grid.show" data-effect="grid">
+        <label for="grid-show">Show grid</label>
+      </div>
+      <div class="field-container checkbox-field">
+        <input type="checkbox" id="grid-snap" data-path="grid.snap" data-effect="grid">
+        <label for="grid-snap">Snap to grid</label>
+      </div>
+      <div class="field-container radio-label">Grid colour</div>
+      <div class="field-container radio-row">
+        <input type="radio" id="grid-white" name="grid-color" value="white" data-type="string" data-path="grid.color" data-effect="grid"><label for="grid-white">White</label>
+        <input type="radio" id="grid-black" name="grid-color" value="black" data-type="string" data-path="grid.color" data-effect="grid"><label for="grid-black">Black</label>
+      </div>
+      <div class="field-container range-container">
+        <label class="range-label" for="grid-divisions">Divisions</label>
+        <input type="range" id="grid-divisions" min="2" max="60" step="2" data-path="grid.divisions" data-effect="grid">
+        <span class="range-value" data-label="grid.divisions"></span>
+      </div>
+      <div class="field-container hint">Cells are always square, counted across the shorter axis and laid out from the centre. Drag the source marker on the canvas; hold Ctrl for the interactive pulse to snap.</div>
+    </div>
+
+    <div class="divider"></div>
+    <button type="button" class="text-button reset-parameters" id="btn-reset-all">Reset parameters to default</button>
+    <div class="divider"></div>
+    <div class="credit">
+      <p>Based on <a href="https://github.com/starrfree/wave-simulator" target="_blank" rel="noopener noreferrer">starrfree/wave-simulator</a> by Eliott Morgensztern</p>
+      <p>Phased Array idea from <a href="https://github.com/starrfree/wave-simulator/issues/2" target="_blank" rel="noopener noreferrer">MerlinBlatterer</a></p>
+      <p class="made-with">Made with Claude Opus 5.5 Medium</p>
+    </div>
+  </aside>
+
+  <button type="button" id="btn-fullscreen" class="fullscreen-button" aria-label="Toggle panel" title="Toggle panel">
+    <svg class="icon" aria-hidden="true"><use href="#i-menu"/></svg>
+  </button>
+
+  <!-- Classic scripts, not modules: module scripts are fetched with CORS, which
+       a page opened from file:// cannot satisfy. Order matters. -->
+  <script src="js/assets.js"></script>
+  <script src="js/shaders.js"></script>
+  <script src="js/params.js"></script>
+  <script src="js/phased-array.js"></script>
+  <script src="js/shapes.js"></script>
+  <script src="js/share.js"></script>
+  <script src="js/recorder.js"></script>
+  <script src="js/mp4.js"></script>
+  <script src="js/video-render.js"></script>
+  <script src="js/scene.js"></script>
+  <script src="js/menu.js"></script>
+  <script src="js/toolbar.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

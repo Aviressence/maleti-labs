@@ -1,0 +1,25 @@
+ Ders İçeriği
+Haftalar	Konular
+1. hafta	Fizik ve Ölçme, Vektörler.
+2. hafta	Hareket, Hız ve İvme.
+3. hafta	Tek Boyutlu Hareket ve İki Boyutlu Hareket.
+4. hafta	Kütle ve Kuvvet İlişkisi, Hareket Yasaları.
+5. hafta	Düzgün Dairesel Hareket, İş ve Enerji.
+6. hafta	Enerjinin Korunumu ve Değişimi.
+7. hafta	Çizgisel Momentum ve Çarpışmalar, Katı Cisimlerin Sabit Bir Eksen Etrafında Dönmesi.Dönme Hareketinin Kinematiği, Yuvarlanma Hareketi.
+8. hafta	Açısal Momentum ve Korunumu, Statik Denge ve Esneklik.
+9. hafta	Basit Sistemlerin Serbest Salınımları, Basit Harmonik Hareket.
+10. hafta	Çok serbestlik dereceli sistemlerin salınımları, Zorla salınımlar, İlerleyen dalgalar, Yansıma
+11. hafta	Modülasyon, Atmalar ve dalga paketleri, Girişim ve kırınım
+12. hafta	Basınç; Kaldırma Kuvveti; Viskosluk ve Hareketli Akışkanlar; Bernoulli İlkesi; Ses.
+13. hafta	Çok Serbestlik Dereceli Sistemlerin Salınımları, Zorla Salınımlar, İlerleyen Dalgalar.
+14. hafta	Yansıma, Modülasyon, Atmalar ve Dalga Paketleri, Girişim ve Kırınım, Ses.
+ Öğretim Yöntem ve Teknikleri
+Öğretim Yöntemleri
+ Anlatım
+ Tartışma
+ Soru-Yanıt
+Öğretim Yeterlilikleri
+ Sorgulayan
+ Problem çözme
+ Temel matematik becerileri
