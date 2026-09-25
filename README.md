@@ -53,4 +53,7 @@ Yeni bir simülasyon `sims/` klasörüne eklenir. Ana sayfada görünmesi için 
 
 ## Lisans
 
-[MIT](LICENSE). Dalga simülatörü, Eliott Morgensztern'in [Wave Simulator](https://github.com/starrfree/wave-simulator) projesine dayanır. Lisansı ve kaynakları `sims/dalga-simulatoru/` klasöründedir.
+Bu proje [MIT](LICENSE) lisansı ile yayınlanmıştır.
+Dalga simülatörü dışındaki tüm içerik bana aittir.
+Dalga simülatörü, Eliott Morgensztern'in [Wave Simulator](https://github.com/starrfree/wave-simulator) projesinden esinlenerek geliştirilmiştir.
+Lisansı ve kaynakları `sims/dalga-simulatoru/` klasöründedir.
