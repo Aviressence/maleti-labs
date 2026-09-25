@@ -35,13 +35,13 @@ function Plane(canvas) {
     ctx.stroke(); ctx.globalAlpha = 1;
     ctx.strokeStyle = c.muted; ctx.lineWidth = 1.5;
     ctx.beginPath(); ctx.moveTo(0, O.y); ctx.lineTo(W, O.y); ctx.moveTo(O.x, 0); ctx.lineTo(O.x, H); ctx.stroke();
-    ctx.fillStyle = c.muted; ctx.font = "11px 'JetBrains Mono', monospace";
-    const step = unit < 26 ? 2 : 1;
+    ctx.fillStyle = c.muted; ctx.font = "14px 'JetBrains Mono', monospace";
+    const step = unit < 34 ? 2 : 1;
     ctx.textAlign = "center"; ctx.textBaseline = "top";
     for (let i = x0; i <= x1; i++) if (i && i % step === 0) ctx.fillText(i, O.x + i * unit, O.y + 4);
     ctx.textAlign = "right"; ctx.textBaseline = "middle";
     for (let j = y0; j <= y1; j++) if (j && j % step === 0) ctx.fillText(j, O.x - 5, O.y - j * unit);
-    ctx.font = "italic 13px 'JetBrains Mono', monospace";
+    ctx.font = "italic 17px 'JetBrains Mono', monospace";
     ctx.fillText("x", W - 8, O.y - 12);
     ctx.textAlign = "left"; ctx.fillText("y", O.x + 8, 12);
   };
@@ -50,7 +50,7 @@ function Plane(canvas) {
     const a = P.toPx(from), b = P.toPx(V.add(from, v));
     const len = Math.hypot(b.x - a.x, b.y - a.y);
     if (len < 1) return;
-    const ux = (b.x - a.x) / len, uy = (b.y - a.y) / len, h = Math.min(12, len * 0.4);
+    const ux = (b.x - a.x) / len, uy = (b.y - a.y) / len, h = Math.min(16, len * 0.4);
     ctx.save();
     ctx.globalAlpha = alpha; ctx.strokeStyle = ctx.fillStyle = color; ctx.lineWidth = width; ctx.lineCap = "round";
     if (dash) ctx.setLineDash(dash);
@@ -61,8 +61,8 @@ function Plane(canvas) {
     ctx.lineTo(b.x - ux * h + uy * h * 0.45, b.y - uy * h - ux * h * 0.45);
     ctx.closePath(); ctx.fill();
     if (label) {
-      ctx.font = "600 15px 'JetBrains Mono', monospace"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-      ctx.fillText(label, (a.x + b.x) / 2 - uy * 16 * side, (a.y + b.y) / 2 + ux * 16 * side);
+      ctx.font = "600 20px 'JetBrains Mono', monospace"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillText(label, (a.x + b.x) / 2 - uy * 22 * side, (a.y + b.y) / 2 + ux * 22 * side);
     }
     ctx.restore();
   };
@@ -80,15 +80,15 @@ function Plane(canvas) {
     ctx.beginPath(); ctx.arc(o.x, o.y, r, a0, a1, a1 < a0); ctx.stroke();
     if (label) {
       const m = (a0 + a1) / 2;
-      ctx.font = "12px 'JetBrains Mono', monospace"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-      ctx.fillText(label, o.x + (r + 10) * Math.cos(m), o.y + (r + 10) * Math.sin(m));
+      ctx.font = "16px 'JetBrains Mono', monospace"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillText(label, o.x + (r + 14) * Math.cos(m), o.y + (r + 14) * Math.sin(m));
     }
     ctx.restore();
   };
 
   P.handle = (p, color) => {
     const s = P.toPx(p);
-    ctx.beginPath(); ctx.arc(s.x, s.y, 7, 0, 7);
+    ctx.beginPath(); ctx.arc(s.x, s.y, 9, 0, 7);
     ctx.fillStyle = FR.colors().bg; ctx.fill();
     ctx.lineWidth = 2; ctx.strokeStyle = color; ctx.stroke();
   };
@@ -97,7 +97,7 @@ function Plane(canvas) {
   P.draggable = (handles, onMove, onEnd = () => {}) => {
     let drag = null;
     const local = (e) => { const r = canvas.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
-    const hit = (m) => handles().find((h) => { const s = P.toPx(h.p); return Math.hypot(s.x - m.x, s.y - m.y) < 18; });
+    const hit = (m) => handles().find((h) => { const s = P.toPx(h.p); return Math.hypot(s.x - m.x, s.y - m.y) < 24; });
     canvas.style.touchAction = "none";
     canvas.addEventListener("pointerdown", (e) => {
       const h = hit(local(e));
@@ -140,4 +140,16 @@ function segment(id, get, set) {
   const sync = () => box.querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.v === get()));
   box.addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) { set(b.dataset.v); sync(); } });
   sync();
+}
+
+// Denklem satırları: her denklem tek satır, alta kaymaz; sığmazsa o satırın yazısı küçülür
+function setEqs(el, lines) {
+  const html = lines.map((l) => `<div class="eq">${l}</div>`).join("");
+  if (el._html === html) return;
+  el._html = html;
+  el.innerHTML = html;
+  el.querySelectorAll(".eq").forEach((d) => {
+    const over = d.scrollWidth / d.clientWidth;
+    if (over > 1) d.style.fontSize = Math.max(11, parseFloat(getComputedStyle(d).fontSize) / over) + "px";
+  });
 }

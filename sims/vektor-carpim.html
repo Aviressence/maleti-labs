@@ -39,6 +39,7 @@
       </div>
       <label class="check"><input type="checkbox" id="snap" checked> Izgaraya yapıştır</label>
       <div class="calc" id="calc"></div>
+      <div class="rules"><span class="tag">Kurallar</span><div class="calc rules-list" id="rules"></div></div>
       <div class="row">
         <button class="btn ghost" id="reset">Sıfırla</button>
         <button class="btn ghost" id="fs">Tam ekran</button>
@@ -53,7 +54,7 @@ const S = urlState({ ax: 5, ay: 1, bx: 2, by: 4, islem: "dot" });
 const snap = document.getElementById("snap");
 segment("mode", () => S.islem, (v) => { S.islem = v; S.save(); });
 document.getElementById("reset").onclick = () => { Object.assign(S, { ax: 5, ay: 1, bx: 2, by: 4 }); S.save(); };
-document.getElementById("fs").onclick = () => FR.fullscreen(document.getElementById("stage"));
+document.getElementById("fs").onclick = () => FR.fullscreen(document.querySelector(".sim-layout"));
 
 const P = Plane(document.getElementById("cv"));
 P.snap = () => snap.checked;
@@ -62,7 +63,7 @@ P.draggable(
   (id, p) => { if (id === "A") { S.ax = p.x; S.ay = p.y; } else { S.bx = p.x; S.by = p.y; } },
   S.save
 );
-const calc = document.getElementById("calc"), note = document.getElementById("note"), formula = document.getElementById("formula");
+const calc = document.getElementById("calc"), rules = document.getElementById("rules"), note = document.getElementById("note"), formula = document.getElementById("formula");
 const zero = { x: 0, y: 0 };
 
 // ⊙ sayfadan dışarı, ⊗ sayfanın içine
@@ -111,17 +112,37 @@ function frame() {
   const ph = Math.abs(phi).toFixed(1);
   if (S.islem === "dot") {
     formula.textContent = "A·B = |A||B| cos φ";
-    calc.innerHTML =
-      `A·B = AₓBₓ + A_yB_y<br>= (${f(A.x)})(${f(B.x)}) + (${f(A.y)})(${f(B.y)}) = <b>${f(d)}</b><br>` +
-      `|A||B| cos φ = ${f(mA)} · ${f(mB)} · cos ${ph}° = <b>${f(d)}</b><br>φ = <b>${ph}°</b>`;
-    note.textContent = "Sonuç bir sayıdır (skaler). φ < 90° ise pozitif, φ = 90° ise sıfır, φ > 90° ise negatif.";
+    setEqs(calc, [
+      `φ = <b>${ph}°</b>`,
+      `A·B = AₓBₓ + A_yB_y`,
+      `A·B = (${f(A.x)})(${f(B.x)}) + (${f(A.y)})(${f(B.y)}) = <b>${f(d)}</b>`,
+      `A·B = |A||B| cos φ = ${f(mA)} · ${f(mB)} · cos ${ph}° = <b>${f(d)}</b>`,
+    ]);
+    setEqs(rules, [
+      "A·B = |A||B| cos φ = AₓBₓ + A_yB_y",
+      "A·B = B·A",
+      "A ⊥ B  ⇔  A·B = 0",
+      "î·î = ĵ·ĵ = 1,  î·ĵ = 0",
+      "φ < 90° → +,  φ = 90° → 0,  φ > 90° → −",
+    ]);
+    note.textContent = "Sonuç bir sayıdır (skaler), yönü yoktur.";
   } else {
     formula.textContent = "|A×B| = |A||B| sin φ";
-    calc.innerHTML =
-      `A×B = (AₓB_y − A_yBₓ) k̂<br>= ((${f(A.x)})(${f(B.y)}) − (${f(A.y)})(${f(B.x)})) k̂ = <b>${f(x)} k̂</b><br>` +
-      `|A×B| = |A||B| sin φ = ${f(mA)} · ${f(mB)} · sin ${ph}° = <b>${f(Math.abs(x))}</b><br>` +
-      `Yön: <b>${Math.abs(x) < 0.005 ? "–" : x > 0 ? "+z, sayfadan dışarı ⊙" : "−z, sayfanın içine ⊗"}</b>`;
-    note.textContent = "Büyüklük, A ve B'nin oluşturduğu paralelkenarın alanına eşittir. Yön sağ el kuralıyla bulunur.";
+    setEqs(calc, [
+      `φ = <b>${ph}°</b>`,
+      `A×B = (AₓB_y − A_yBₓ) k̂`,
+      `A×B = ((${f(A.x)})(${f(B.y)}) − (${f(A.y)})(${f(B.x)})) k̂ = <b>${f(x)} k̂</b>`,
+      `|A×B| = |A||B| sin φ = ${f(mA)} · ${f(mB)} · sin ${ph}° = <b>${f(Math.abs(x))}</b>`,
+      `Yön: <b>${Math.abs(x) < 0.005 ? "–" : x > 0 ? "+z, sayfadan dışarı ⊙" : "−z, sayfanın içine ⊗"}</b>`,
+    ]);
+    setEqs(rules, [
+      "|A×B| = |A||B| sin φ = paralelkenar alanı",
+      "A×B = −(B×A)",
+      "A ∥ B  ⇔  A×B = 0",
+      "î×ĵ = k̂,  ĵ×k̂ = î,  k̂×î = ĵ",
+      "Yön: sağ el kuralı, A×B hem A'ya hem B'ye dik",
+    ]);
+    note.textContent = "Sonuç bir vektördür; bu düzlemde yalnızca z bileşeni vardır.";
   }
   requestAnimationFrame(frame);
 }

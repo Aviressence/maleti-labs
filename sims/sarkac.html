@@ -70,7 +70,7 @@ document.querySelectorAll("input[data-param]").forEach((i) =>
   i.addEventListener("input", () => (i.dataset.param === "th" || i.dataset.param === "L") && reset()));
 document.getElementById("reset").onclick = reset;
 document.getElementById("play").onclick = (e) => { running = !running; e.target.textContent = running ? "Duraklat" : "Oynat"; };
-document.getElementById("fs").onclick = () => FR.fullscreen(document.getElementById("stage"));
+document.getElementById("fs").onclick = () => FR.fullscreen(document.querySelector(".sim-layout"));
 
 // RK4 tek adım
 function step(dt) {
