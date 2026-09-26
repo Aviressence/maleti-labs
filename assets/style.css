@@ -301,7 +301,7 @@ select.unit { font: 500 15px var(--mono); color: var(--ink); background: var(--b
 /* Tema anahtarı: açıkta güneş (sarı) solda, koyuda ay (beyaz-mavi) sağda */
 .theme-switch {
   position: relative; flex: none; width: 66px; height: 36px; padding: 0; cursor: pointer;
-  border-radius: 999px; border: 2px solid var(--muted); background: var(--bg); transition: background .25s, border-color .25s;
+  border-radius: 999px; border: 2px solid var(--muted); background: #f6c945; transition: background .25s, border-color .25s;
 }
 .theme-switch:hover { border-color: var(--ink); }
 .theme-switch:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
@@ -314,12 +314,12 @@ select.unit { font: 500 15px var(--mono); color: var(--ink); background: var(--b
 .theme-switch .sun { color: #f2a900; }
 .theme-switch .moon { color: #cfe2ff; opacity: 0; transform: rotate(-60deg) scale(.6); }
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .theme-switch { background: #0c1420; }
+  :root:not([data-theme="light"]) .theme-switch { background: #8ec2ff; }
   :root:not([data-theme="light"]) .theme-switch .knob { transform: translateX(30px); background: #22324a; }
   :root:not([data-theme="light"]) .theme-switch .sun { opacity: 0; transform: rotate(60deg) scale(.6); }
   :root:not([data-theme="light"]) .theme-switch .moon { opacity: 1; transform: none; }
 }
-:root[data-theme="dark"] .theme-switch { background: #0c1420; }
+:root[data-theme="dark"] .theme-switch { background: #8ec2ff; }
 :root[data-theme="dark"] .theme-switch .knob { transform: translateX(30px); background: #22324a; }
 :root[data-theme="dark"] .theme-switch .sun { opacity: 0; transform: rotate(60deg) scale(.6); }
 :root[data-theme="dark"] .theme-switch .moon { opacity: 1; transform: none; }
