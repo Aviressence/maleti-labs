@@ -326,3 +326,10 @@ select.unit { font: 500 15px var(--mono); color: var(--ink); background: var(--b
 @media (prefers-reduced-motion: reduce) { .theme-switch .knob, .theme-switch svg { transition: none; } }
 
 
+
+/* Geniş ekranda (sol boşluk ≥ ~350 px) büyük logo: sol üst köşede, bardan aşağı sol boşluğa taşar.
+   Bar yüksekliği değişmez, simülasyon alanı küçülmez. */
+@media (min-width: 1840px) {
+  .bar .logo { position: absolute; top: 14px; left: 18px; gap: 20px; font-size: 38px; letter-spacing: -.02em; }
+  .bar .logo .mark { width: 96px; height: 96px; }
+}
