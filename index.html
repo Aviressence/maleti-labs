@@ -8,7 +8,7 @@
 <link rel="icon" href="assets/marka/ikon-koyu-tema.png" media="(prefers-color-scheme: dark)">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=e4b3382c">
+<link rel="stylesheet" href="assets/style.css?v=27fa7afa">
 <script src="assets/core.js?v=b689f43c"></script>
 </head>
 <body>
@@ -61,6 +61,15 @@
     <div class="course-head">
       <div><span class="tag">Ders 02</span><h2>Dalgalar &amp; Optik</h2></div>
     </div>
+    <a class="lab-card" href="sims/dalga-simulatoru/index.html">
+      <canvas class="lab-bg" id="labBg" aria-hidden="true"></canvas>
+      <div class="lab-text">
+        <span class="tag">Laboratuvar · tüm ders</span>
+        <h3>Dalga Simülatörü</h3>
+        <p>İki boyutlu dalga laboratuvarı: noktasal, düzlem ve fazlı dizi kaynaklar; yarıklar ve engeller. Girişimi, kırınımı ve yansımayı serbestçe dene.</p>
+      </div>
+      <span class="lab-go">Aç <span aria-hidden="true">→</span></span>
+    </a>
     <div class="weeks" data-course="dalgalar"></div>
   </section>
 </main>
@@ -94,7 +103,7 @@ const COURSES = {
     ["Dalga Tipleri, 1B İlerleyen Dalgalar, Üst Üste Binme ve Girişim", [
       { grup: "Dalga Tipleri", sims: ["Enine / boyuna dalga"] },
       { grup: "İlerleyen Dalgalar", sims: ["Atma ilerlemesi"] },
-      { grup: "Üst Üste Binme ve Girişim", sims: ["Süperpozisyon", { ad: "Dalga simülatörü", url: "sims/dalga-simulatoru/index.html" }] },
+      { grup: "Üst Üste Binme ve Girişim", sims: ["Süperpozisyon"] },
     ]],
     ["Yansıma ve Geçiş, Harmonik Dalgalar, Sicimde Dalgalar, Enerji, Dalga Denklemi", [
       { grup: "Yansıma ve Geçiş", sims: ["Sabit / serbest uçta yansıma", "Ortam değişiminde geçiş"] },
@@ -127,6 +136,35 @@ document.querySelectorAll("[data-course]").forEach((box) => {
       <div class="sims">${top}</div>${subs}</div>`;
   }).join("");
 });
+
+// Dalga Simülatörü kartı: arka planda iki kaynaktan girişim deseni (düşük çözünürlükte hesaplanıp büyütülür).
+// Hareket azaltma tercihinde tek kare; kart görünmüyorken durur.
+(() => {
+  const cv = document.getElementById("labBg"); if (!cv) return;
+  const ctx = cv.getContext("2d"), CELL = 5;
+  let img = null, gw = 0, gh = 0, visible = true, raf = 0;
+  const hex = (h) => { h = h.trim().replace("#", ""); if (h.length === 3) h = [...h].map((q) => q + q).join(""); const n = parseInt(h, 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; };
+  const fit = () => {
+    const r = cv.getBoundingClientRect(); gw = Math.max(1, Math.ceil(r.width / CELL)); gh = Math.max(1, Math.ceil(r.height / CELL));
+    cv.width = gw; cv.height = gh; img = ctx.createImageData(gw, gh);
+  };
+  const frame = (now) => {
+    const col = hex(FR.colors().accent), d = img.data, tt = now / 1000;
+    const s1 = [gw * 0.78, gh * 0.25], s2 = [gw * 0.78, gh * 0.75], k = 2 * Math.PI / 11, om = 2.2;
+    for (let j = 0; j < gh; j++) for (let i = 0; i < gw; i++) {
+      const r1 = Math.hypot(i - s1[0], j - s1[1]), r2 = Math.hypot(i - s2[0], j - s2[1]);
+      const u = (Math.sin(k * r1 - om * tt) / Math.sqrt(1 + r1 * 0.05) + Math.sin(k * r2 - om * tt) / Math.sqrt(1 + r2 * 0.05)) / 2;
+      const o = (j * gw + i) * 4, q = Math.max(0, u);
+      d[o] = col[0]; d[o + 1] = col[1]; d[o + 2] = col[2]; d[o + 3] = Math.min(255, q * q * 330);
+    }
+    ctx.putImageData(img, 0, 0);
+  };
+  const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const loop = (now) => { frame(now); if (visible && !still) raf = requestAnimationFrame(loop); };
+  new ResizeObserver(() => { fit(); frame(performance.now()); }).observe(cv);
+  new IntersectionObserver(([e]) => { visible = e.isIntersecting; cancelAnimationFrame(raf); if (visible && !still) raf = requestAnimationFrame(loop); }).observe(cv);
+  new MutationObserver(() => frame(performance.now())).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+})();
 
 // Kategori düğmesi: kendi listesini açar/kapatır, aynı haftadaki diğer kategoriyi kapatır
 document.addEventListener("click", (e) => {
