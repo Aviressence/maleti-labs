@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Yay–Kütle · MaLeTiLabs</title>
+<link rel="icon" href="../assets/marka/ikon-acik-tema.png" media="(prefers-color-scheme: light)">
+<link rel="icon" href="../assets/marka/ikon-koyu-tema.png" media="(prefers-color-scheme: dark)">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/katex-0.18.9/katex.min.css">
+<link rel="stylesheet" href="../assets/style.css?v=1df4f872">
+<script src="../assets/katex-0.18.9/katex.min.js"></script>
+<script src="../assets/core.js?v=b689f43c"></script>
+<script src="../assets/vec.js?v=628245b8"></script>
+</head>
+<body class="sim-page">
+
+<header class="bar">
+  <div class="wrap">
+    <a class="logo" href="../index.html">
+      <img class="mark light" src="../assets/marka/ikon-acik-tema.png" alt=""><img class="mark dark" src="../assets/marka/ikon-koyu-tema.png" alt="">
+      <span class="wm"><span class="l1">Ma</span><span class="l2">Le</span><span class="l3">Ti</span><em>Labs</em></span>
+    </a>
+    <nav><a href="../index.html#dalgalar">← Dalgalar &amp; Optik</a></nav>
+    <button class="theme-switch" data-theme-toggle role="switch" aria-checked="false" aria-label="Koyu tema"><span class="knob"><svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="4.5" fill="currentColor"/><path d="M12 1.5v2.5M12 20v2.5M4.2 4.2l1.8 1.8M18 18l1.8 1.8M1.5 12H4M20 12h2.5M4.2 19.8L6 18M18 6l1.8-1.8"/></svg><svg class="moon" viewBox="0 0 24 24"><path fill="currentColor" d="M20.5 14.3A8.5 8.5 0 0 1 9.7 3.5 8.5 8.5 0 1 0 20.5 14.3z"/></svg></span></button>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="sim-title">
+    <div><span class="tag">Dalgalar &amp; Optik · Hafta 01</span><h1>Yay–Kütle Sistemi</h1></div>
+    <div class="sim-formula" id="formula"></div>
+  </div>
+
+  <div class="sim-layout">
+    <div class="stage" id="stage"><canvas id="cv"></canvas></div>
+
+    <aside class="panel">
+      <div class="ctrl"><label><span>Yay sabiti <i>k</i></span><output id="ok"></output></label>
+        <input type="range" id="k" min="5" max="100" step="5"></div>
+      <div class="ctrl"><label><span>Kütle <i>m</i></span><output id="om"></output></label>
+        <input type="range" id="m" min="0.2" max="5" step="0.1"></div>
+      <div class="ctrl"><label><span>Genlik <i>A</i> <small>(çekilen miktar)</small></span><output id="oA"></output></label>
+        <input type="range" id="A" min="0.1" max="0.5" step="0.05"></div>
+      <div class="ctrl"><label><span>Sönüm <i>b</i></span><output id="ob"></output></label>
+        <input type="range" id="b" min="0" max="2" step="0.1"></div>
+      <div class="calc" id="calc"></div>
+      <div class="rules"><span class="tag">Kurallar</span><div class="calc rules-list" id="rules"></div></div>
+      <div class="row">
+        <button class="btn" id="play">Oynat</button>
+        <button class="btn ghost" id="restart">Baştan</button>
+        <div class="seg speed" id="speed"><button data-v="0.5">0.5×</button><button data-v="1">1×</button></div>
+        <button class="btn ghost icon" id="fs" title="Tam ekran" aria-label="Tam ekran"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
+      </div>
+    </aside>
+  </div>
+</main>
+
+<script>
+const R = String.raw, XMAX = 0.55, TW = 10;       // grafik: son 10 s
+const S = urlState({ k: 20, m: 1, A: 0.4, b: 0 });
+let t = 0, x = S.A, v = 0, hist = [[0, S.A]], running = false, last = 0, speed = 1;
+const om0 = () => Math.sqrt(S.k / S.m);
+
+// --- Kontroller ---
+const playBtn = document.getElementById("play");
+const restart = () => { t = 0; x = S.A; v = 0; hist = [[0, S.A]]; };
+const FMT = { k: (n) => `${n} N/m`, m: (n) => `${n.toFixed(1)} kg`, A: (n) => `${n.toFixed(2)} m`, b: (n) => `${n.toFixed(1)} kg/s` };
+for (const key of ["k", "m", "A", "b"]) {
+  const inp = document.getElementById(key), out = document.getElementById("o" + key);
+  inp.value = S[key];
+  const sync = () => (out.textContent = FMT[key](+inp.value));
+  // k, m, A değişince hareket baştan başlar (x = A, v = 0); sönüm değişince sürer
+  inp.oninput = () => { S[key] = +inp.value; S.save(); sync(); if (key !== "b") restart(); render(); };
+  sync();
+}
+const pause = () => { running = false; playBtn.textContent = "Oynat"; };
+playBtn.onclick = () => {
+  if (running) return pause();
+  running = true; playBtn.textContent = "Duraklat"; last = performance.now(); requestAnimationFrame(loop);
+};
+document.getElementById("restart").onclick = () => { pause(); restart(); render(); };
+segment("speed", () => String(speed), (val) => { speed = +val; });
+document.getElementById("fs").onclick = () => FR.fullscreen(document.querySelector(".sim-layout"));
+
+// m x'' = −k x − b v  (RK4)
+function step(h) {
+  const f = (xx, vv) => (-S.k * xx - S.b * vv) / S.m;
+  const k1x = v, k1v = f(x, v);
+  const k2x = v + k1v * h / 2, k2v = f(x + k1x * h / 2, v + k1v * h / 2);
+  const k3x = v + k2v * h / 2, k3v = f(x + k2x * h / 2, v + k2v * h / 2);
+  const k4x = v + k3v * h, k4v = f(x + k3x * h, v + k3v * h);
+  x += h / 6 * (k1x + 2 * k2x + 2 * k3x + k4x); v += h / 6 * (k1v + 2 * k2v + 2 * k3v + k4v); t += h;
+}
+function loop(now) {
+  if (!running) return;
+  const dt = Math.min(0.05, (now - last) / 1000) * speed; last = now;
+  const n = Math.ceil(dt / 0.002); for (let i = 0; i < n; i++) step(dt / n);
+  hist.push([t, x]); while (hist.length && hist[0][0] < t - TW - 0.5) hist.shift();
+  render();
+  requestAnimationFrame(loop);
+}
+
+// --- Çizim ---
+const { ctx, size } = FR.canvas(document.getElementById("cv"));
+function arrow(x0, y0, x1, y1, color, lab) {
+  const L = Math.hypot(x1 - x0, y1 - y0); if (L < 4) return;
+  const ux = (x1 - x0) / L, uy = (y1 - y0) / L;
+  ctx.strokeStyle = ctx.fillStyle = color; ctx.lineWidth = 2.5;
+  ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1 - ux * 5, y1 - uy * 5); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x1 + ux * 2, y1 + uy * 2); ctx.lineTo(x1 - ux * 8 - uy * 5, y1 - uy * 8 + ux * 5); ctx.lineTo(x1 - ux * 8 + uy * 5, y1 - uy * 8 - ux * 5); ctx.closePath(); ctx.fill();
+  if (lab) { ctx.font = "italic 600 13px 'Instrument Sans', sans-serif"; ctx.textAlign = ux >= 0 ? "left" : "right"; ctx.textBaseline = "middle"; ctx.fillText(lab, x1 + ux * 8, y1); }
+}
+
+function draw() {
+  const { w: W, h: H } = size(), c = FR.colors();
+  ctx.clearRect(0, 0, W, H);
+  const L = 58, Rr = 18;
+
+  // Sahne: duvar, yay, blok (sürtünmesiz zemin)
+  const floorY = Math.max(130, H * 0.3), wallX = 34, xe = wallX + Math.max(150, (W - wallX) * 0.45);
+  const s = Math.min((W - Rr - 40 - xe) / XMAX, (xe - wallX - 60) / XMAX);   // piksel / metre
+  const bw = 54, bh = 42, bx = xe + x * s;
+  ctx.fillStyle = c.line; ctx.fillRect(wallX - 14, floorY - 110, 14, 110);
+  ctx.strokeStyle = c.muted; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(wallX - 14, floorY); ctx.lineTo(W - Rr, floorY); ctx.stroke();
+  // denge ve ±A çizgileri
+  ctx.setLineDash([4, 4]); ctx.lineWidth = 1;
+  for (const [q, lab] of [[0, "x = 0"], [S.A, "+A"], [-S.A, "−A"]]) {
+    ctx.strokeStyle = q ? c.line : c.muted; ctx.beginPath(); ctx.moveTo(xe + q * s, floorY - bh - 34); ctx.lineTo(xe + q * s, floorY + 6); ctx.stroke();
+    ctx.fillStyle = c.muted; ctx.font = "12px 'JetBrains Mono', monospace"; ctx.textAlign = "center"; ctx.textBaseline = "top"; ctx.fillText(lab, xe + q * s, floorY + 8);
+  }
+  ctx.setLineDash([]);
+  // yay: duvardan bloğun sol yüzüne
+  const sy = floorY - bh / 2, x0 = wallX, x1 = bx - bw / 2, coils = 12;
+  ctx.strokeStyle = c.ink; ctx.lineWidth = 1.8; ctx.beginPath(); ctx.moveTo(x0, sy); ctx.lineTo(x0 + 12, sy);
+  for (let i = 1; i < coils * 2; i++) ctx.lineTo(x0 + 12 + (x1 - x0 - 24) * i / (coils * 2), sy + (i % 2 ? -11 : 11));
+  ctx.lineTo(x1 - 12, sy); ctx.lineTo(x1, sy); ctx.stroke();
+  ctx.fillStyle = c.accent; ctx.beginPath(); ctx.roundRect(bx - bw / 2, floorY - bh, bw, bh, 5); ctx.fill();
+  ctx.font = "600 14px 'Instrument Sans', sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  ctx.fillStyle = c.bg; ctx.fillText("m", bx, floorY - bh / 2);
+  // kuvvet (F = −kx) ve hız okları
+  const Fk = -S.k * x, Fmax = S.k * XMAX;
+  arrow(bx, floorY - bh - 14, bx + Fk / Fmax * 90, floorY - bh - 14, c.ok, "F");
+  const vmax = XMAX * om0();
+  arrow(bx, floorY - bh - 32, bx + v / vmax * 90, floorY - bh - 32, c.accent2, "v");
+
+  // x–t (kayan pencere)
+  const gy = floorY + 36, eh = 70, gap = 18, gh = Math.max(90, H - gy - gap - eh - 30);
+  const gx = L, gw = W - L - Rr, t0 = Math.max(0, t - TW);
+  const X = (tt) => gx + (tt - t0) / TW * gw, Y = (q) => gy + gh / 2 - q / XMAX * (gh / 2);
+  ctx.strokeStyle = c.line; ctx.lineWidth = 1; ctx.strokeRect(gx, gy, gw, gh);
+  ctx.strokeStyle = c.muted; ctx.beginPath(); ctx.moveTo(gx, Y(0)); ctx.lineTo(gx + gw, Y(0)); ctx.stroke();
+  ctx.setLineDash([4, 4]); ctx.strokeStyle = c.line;
+  for (const q of [S.A, -S.A]) { ctx.beginPath(); ctx.moveTo(gx, Y(q)); ctx.lineTo(gx + gw, Y(q)); ctx.stroke(); }
+  ctx.setLineDash([]);
+  ctx.save(); ctx.beginPath(); ctx.rect(gx, gy, gw, gh); ctx.clip();
+  ctx.strokeStyle = c.accent; ctx.lineWidth = 2.4; ctx.beginPath();
+  for (const [tt, q] of hist) if (tt >= t0 - 0.1) ctx.lineTo(X(tt), Y(q));
+  ctx.stroke(); ctx.restore();
+  ctx.fillStyle = c.accent; ctx.beginPath(); ctx.arc(X(t), Y(x), 5, 0, 7); ctx.fill();
+  ctx.font = "italic 600 14px 'Instrument Sans', sans-serif"; ctx.textAlign = "left"; ctx.textBaseline = "top"; ctx.fillText("x (m)", gx + 7, gy + 5);
+  ctx.font = "11px 'JetBrains Mono', monospace"; ctx.fillStyle = c.muted; ctx.textAlign = "right"; ctx.textBaseline = "middle";
+  for (const q of [0.5, 0, -0.5]) ctx.fillText(q, gx - 6, Y(q));
+  ctx.textAlign = "center"; ctx.textBaseline = "top";
+  for (let s2 = Math.ceil(t0); s2 <= t0 + TW + 1e-9; s2++) if (s2 % 2 === 0) ctx.fillText(s2, X(s2), gy + gh + 4);
+  ctx.textAlign = "right"; ctx.fillText("t (s)", gx + gw, gy + gh + 16);
+
+  // Enerji çubukları: K + U = E (sönümsüzken sabit)
+  const K = 0.5 * S.m * v * v, U = 0.5 * S.k * x * x, E0 = 0.5 * S.k * S.A * S.A;
+  const ey = gy + gh + 36, bl = 30, bwid = gw - bl - 70, rowH = (eh - 8) / 3;
+  [["K", K, c.accent2], ["U", U, c.ok], ["E", K + U, c.ink]].forEach(([lab, val, col], i) => {
+    const yy = ey + i * (rowH + 4);
+    ctx.fillStyle = c.line; ctx.fillRect(gx + bl, yy, bwid, rowH);
+    ctx.fillStyle = col; ctx.fillRect(gx + bl, yy, bwid * Math.min(1, val / E0), rowH);
+    ctx.font = "italic 600 13px 'Instrument Sans', sans-serif"; ctx.textAlign = "left"; ctx.textBaseline = "middle"; ctx.fillText(lab, gx, yy + rowH / 2);
+    ctx.font = "12px 'JetBrains Mono', monospace"; ctx.fillStyle = c.muted; ctx.fillText(`${val.toFixed(3)} J`, gx + bl + bwid + 8, yy + rowH / 2);
+  });
+}
+
+// --- Metin ---
+setEqs(document.getElementById("formula"), [R`$F = -kx \qquad \omega = \sqrt{k/m} \qquad T = 2\pi\sqrt{m/k}$`]);
+function render() {
+  const f = (n, d = 2) => (Math.abs(n) < 0.5 * 10 ** -d ? 0 : n).toFixed(d), w0 = om0(), T = 2 * Math.PI / w0;
+  setEqs(document.getElementById("calc"), [
+    `$\\omega = \\sqrt{${S.k} / ${S.m}} = ${f(w0)}\\ \\text{rad/s}, \\ T = \\mathbf{${f(T)}}\\ \\text{s}$`,
+    `$t = ${f(t)}\\ \\text{s}: \\ \\cA{x} = \\cA{\\mathbf{${f(x, 3)}}}\\ \\text{m}, \\ \\cB{v} = \\cB{\\mathbf{${f(v)}}}\\ \\text{m/s}$`,
+    `$F = -kx = -(${S.k})(${f(x, 3)}) = \\mathbf{${f(-S.k * x)}}\\ \\text{N}$`,
+    `$E_0 = \\tfrac12 k A^2 = ${f(0.5 * S.k * S.A * S.A, 3)}\\ \\text{J}$ ${S.b > 0 ? "*— sönümle azalır*" : "*— sabit kalır*"}`,
+  ]);
+  draw();
+}
+setEqs(document.getElementById("rules"), [
+  R`$T$ *genlikten bağımsızdır; yalnız* $m$ *ve* $k$*'ya bağlı*`,
+  R`**Uçta** $K = 0$*,* **dengede** $U = 0$*;* $K + U$ *sönümsüzken sabit*`,
+]);
+new ResizeObserver(draw).observe(document.getElementById("cv"));
+new MutationObserver(draw).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+document.fonts?.addEventListener("loadingdone", draw);
+render();
+</script>
+</body>
+</html>
