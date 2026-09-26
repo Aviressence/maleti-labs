@@ -100,16 +100,20 @@ const FR = (() => {
   document.addEventListener("DOMContentLoaded", () => {
     const sim = document.body.classList.contains("sim-page");
     if (!fsSupported()) document.querySelectorAll("#fs").forEach((b) => (b.hidden = true));
-    // Dikey telefonda "yan çevir" önerisi (CSS yalnız dar + dikey ekranda gösterir); kapatılınca oturum boyunca gelmez
+    // Telefonda döndürme önerisi. Sayfa <body data-orient="…"> ile seçer:
+    //   "landscape" → dikeyken "yan çevirin"; "portrait" → yatayken "dikey çevirin"; yok / "none" → öneri yok.
+    // CSS yalnız ilgili ekran yönünde gösterir; kapatılınca oturum boyunca o öneri gelmez.
     const layout = document.querySelector(".sim-layout");
+    const orient = document.body.dataset.orient || "none";   // şimdilik varsayılan: öneri yok (sayfa isterse açar)
+    const key = "fr-rotate-" + orient;
     let dismissed = false;
-    try { dismissed = sessionStorage.getItem("fr-rotate") === "1"; } catch {}
-    if (sim && layout && !dismissed) {
+    try { dismissed = sessionStorage.getItem(key) === "1"; } catch {}
+    if (sim && layout && orient !== "none" && !dismissed) {
       const hint = document.createElement("div");
-      hint.className = "rotate-hint";
+      hint.className = "rotate-hint to-" + orient;
       hint.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="2.5" width="10" height="17" rx="2"/><path d="M20.5 14a8.5 8.5 0 0 1-6 7.5M3.5 10a8.5 8.5 0 0 1 6-7.5"/></svg>' +
-        '<span>Daha rahat görmek için telefonu yan çevirin.</span><button type="button" aria-label="Kapat">×</button>';
-      hint.querySelector("button").onclick = () => { hint.remove(); try { sessionStorage.setItem("fr-rotate", "1"); } catch {} };
+        `<span>Daha rahat görmek için telefonu ${orient === "portrait" ? "dikey" : "yan"} çevirin.</span><button type="button" aria-label="Kapat">×</button>`;
+      hint.querySelector("button").onclick = () => { hint.remove(); try { sessionStorage.setItem(key, "1"); } catch {} };
       layout.before(hint);
     }
     const el = document.createElement(sim ? "div" : "footer");
