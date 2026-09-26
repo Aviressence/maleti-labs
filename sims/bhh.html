@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Basit Harmonik Hareket · MaLeTiLabs</title>
+<link rel="icon" href="../assets/marka/ikon-acik-tema.png" media="(prefers-color-scheme: light)">
+<link rel="icon" href="../assets/marka/ikon-koyu-tema.png" media="(prefers-color-scheme: dark)">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/katex-0.18.9/katex.min.css">
+<link rel="stylesheet" href="../assets/style.css?v=e4b3382c">
+<script src="../assets/katex-0.18.9/katex.min.js"></script>
+<script src="../assets/core.js?v=b689f43c"></script>
+<script src="../assets/vec.js?v=628245b8"></script>
+<style>@media (max-height: 720px) { .rules-list { line-height: 1.55; } }</style>
+</head>
+<body class="sim-page">
+
+<header class="bar">
+  <div class="wrap">
+    <a class="logo" href="../index.html">
+      <img class="mark light" src="../assets/marka/ikon-acik-tema.png" alt=""><img class="mark dark" src="../assets/marka/ikon-koyu-tema.png" alt="">
+      <span class="wm"><span class="l1">Ma</span><span class="l2">Le</span><span class="l3">Ti</span><em>Labs</em></span>
+    </a>
+    <nav><a href="../index.html#dalgalar">← Dalgalar &amp; Optik</a></nav>
+    <button class="theme-switch" data-theme-toggle role="switch" aria-checked="false" aria-label="Koyu tema"><span class="knob"><svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="4.5" fill="currentColor"/><path d="M12 1.5v2.5M12 20v2.5M4.2 4.2l1.8 1.8M18 18l1.8 1.8M1.5 12H4M20 12h2.5M4.2 19.8L6 18M18 6l1.8-1.8"/></svg><svg class="moon" viewBox="0 0 24 24"><path fill="currentColor" d="M20.5 14.3A8.5 8.5 0 0 1 9.7 3.5 8.5 8.5 0 1 0 20.5 14.3z"/></svg></span></button>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="sim-title">
+    <div><span class="tag">Dalgalar &amp; Optik · Hafta 01</span><h1 id="title">Basit Harmonik Hareket</h1></div>
+    <div class="sim-formula" id="formula"></div>
+  </div>
+
+  <div class="sim-layout">
+    <div class="stage" id="stage"><canvas id="cv"></canvas></div>
+
+    <aside class="panel">
+      <div class="seg" id="mode">
+        <button data-v="daire">Dairesel hareket</button>
+        <button data-v="faz">x, v, a ve faz</button>
+      </div>
+      <div class="ctrl"><label><span>Genlik <i>A</i></span><output id="oA"></output></label>
+        <input type="range" id="A" min="0.5" max="2" step="0.1"></div>
+      <div class="ctrl"><label><span>Periyot <i>T</i></span><output id="oT"></output></label>
+        <input type="range" id="T" min="1" max="6" step="0.5"></div>
+      <div class="ctrl"><label><span>Faz sabiti <i>φ</i></span><output id="ophi"></output></label>
+        <input type="range" id="phi" min="-180" max="180" step="15"></div>
+      <div class="ctrl"><label><span>Zaman <i>t</i></span><output id="ot"></output></label>
+        <input type="range" id="t" min="0" max="1" step="0.01"></div>
+      <div class="calc" id="calc"></div>
+      <div class="rules"><span class="tag">Kurallar</span><div class="calc rules-list" id="rules"></div></div>
+      <div class="row">
+        <button class="btn" id="play">Oynat</button>
+        <button class="btn ghost" id="restart">Baştan</button>
+        <div class="seg speed" id="speed"><button data-v="0.5">0.5×</button><button data-v="1">1×</button></div>
+        <button class="btn ghost icon" id="fs" title="Tam ekran" aria-label="Tam ekran"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
+      </div>
+    </aside>
+  </div>
+</main>
+
+<script>
+const R = String.raw, AMAX = 2, NP = 3;             // grafikte 3 periyot gösterilir
+const S = urlState({ mod: "daire", A: 1.5, T: 4, phi: 0 });
+if (S.mod !== "faz") S.mod = "daire";
+let t = 0, running = false, last = 0, speed = 1;
+const w = () => 2 * Math.PI / S.T, ph = () => S.phi * Math.PI / 180, TW = () => NP * S.T;
+const th = (tt) => w() * tt + ph();
+const x = (tt) => S.A * Math.cos(th(tt));
+const v = (tt) => -S.A * w() * Math.sin(th(tt));
+const a = (tt) => -S.A * w() * w() * Math.cos(th(tt));
+
+// --- Kontroller ---
+const tIn = document.getElementById("t"), tOut = document.getElementById("ot"), playBtn = document.getElementById("play");
+const setT = (val) => { const M = TW(); t = Math.min(M, Math.max(0, val)); tIn.max = M; tIn.value = t; tOut.textContent = `${t.toFixed(2)} s`; };
+const FMT = { A: (n) => `${n.toFixed(1)} m`, T: (n) => `${n.toFixed(1)} s`, phi: (n) => `${n}°` };
+for (const k of ["A", "T", "phi"]) {
+  const inp = document.getElementById(k), out = document.getElementById("o" + k);
+  inp.value = S[k];
+  const sync = () => (out.textContent = FMT[k](+inp.value));
+  inp.oninput = () => { S[k] = +inp.value; S.save(); sync(); setT(t); render(); };
+  sync();
+}
+segment("mode", () => S.mod, (val) => { S.mod = val; S.save(); render(); });
+const pause = () => { running = false; playBtn.textContent = "Oynat"; };
+tIn.oninput = () => { pause(); setT(+tIn.value); render(); };
+playBtn.onclick = () => {
+  if (running) return pause();
+  running = true; playBtn.textContent = "Duraklat"; last = performance.now(); requestAnimationFrame(loop);
+};
+document.getElementById("restart").onclick = () => { pause(); setT(0); render(); };
+segment("speed", () => String(speed), (val) => { speed = +val; });
+document.getElementById("fs").onclick = () => FR.fullscreen(document.querySelector(".sim-layout"));
+// hareket periyodik: pencerenin sonunda başa sarar (3 tam periyot, kesintisiz)
+function loop(now) {
+  if (!running) return;
+  let nt = t + (now - last) / 1000 * speed; last = now;
+  if (nt > TW()) nt -= TW();
+  setT(nt); render();
+  requestAnimationFrame(loop);
+}
+
+// --- Çizim ---
+const { ctx, size } = FR.canvas(document.getElementById("cv"));
+function arrow(x0, y0, x1, y1, color, width = 2.5, lab) {
+  const L = Math.hypot(x1 - x0, y1 - y0); if (L < 3) return;
+  const ux = (x1 - x0) / L, uy = (y1 - y0) / L;
+  ctx.strokeStyle = ctx.fillStyle = color; ctx.lineWidth = width;
+  ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1 - ux * 5, y1 - uy * 5); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x1 + ux * 2, y1 + uy * 2); ctx.lineTo(x1 - ux * 8 - uy * 5, y1 - uy * 8 + ux * 5); ctx.lineTo(x1 - ux * 8 + uy * 5, y1 - uy * 8 - ux * 5); ctx.closePath(); ctx.fill();
+  if (lab) { ctx.font = "italic 600 13px 'Instrument Sans', sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(lab, x1 + ux * 12, y1 + uy * 12); }
+}
+function graph(box, f, amp, color, label, unit, c, ghost) {
+  const { x: gx, y: gy, w: gw, h: gh } = box, M = TW();
+  const X = (tt) => gx + tt / M * gw, Y = (val) => gy + gh / 2 - val / amp * (gh / 2);
+  ctx.strokeStyle = c.line; ctx.lineWidth = 1; ctx.strokeRect(gx, gy, gw, gh);
+  for (let k = 1; k < NP * 4; k++) { const xx = gx + k / (NP * 4) * gw; ctx.strokeStyle = k % 4 ? c.line : c.muted; ctx.globalAlpha = k % 4 ? 0.5 : 0.8; ctx.beginPath(); ctx.moveTo(xx, gy); ctx.lineTo(xx, gy + gh); ctx.stroke(); }
+  ctx.globalAlpha = 1; ctx.strokeStyle = c.muted; ctx.beginPath(); ctx.moveTo(gx, Y(0)); ctx.lineTo(gx + gw, Y(0)); ctx.stroke();
+  const plot = (fn, alpha, width, t1, dash = []) => {
+    ctx.save(); ctx.globalAlpha = alpha; ctx.strokeStyle = color; ctx.lineWidth = width; ctx.setLineDash(dash); ctx.beginPath();
+    for (let k = 0; k <= 300; k++) { const tt = t1 * k / 300; ctx.lineTo(X(tt), Y(fn(tt))); }
+    ctx.stroke(); ctx.restore();
+  };
+  if (ghost) { ctx.save(); ctx.strokeStyle = c.accent; plot(ghost, 0.5, 1.5, M, [5, 4]); ctx.restore(); }
+  plot(f, 0.25, 2, M); if (t > 0) plot(f, 1, 2.6, t);
+  ctx.fillStyle = color; ctx.beginPath(); ctx.arc(X(t), Y(f(t)), 5, 0, 7); ctx.fill();
+  ctx.font = "italic 600 14px 'Instrument Sans', sans-serif"; ctx.textAlign = "left"; ctx.textBaseline = "top"; ctx.fillStyle = color;
+  ctx.fillText(`${label} (${unit})`, gx + 7, gy + 5);
+  ctx.font = "11px 'JetBrains Mono', monospace"; ctx.textAlign = "right"; ctx.textBaseline = "middle"; ctx.fillStyle = c.muted;
+  ctx.fillText(`+${+amp.toFixed(2)}`, gx - 5, gy + 6); ctx.fillText("0", gx - 5, Y(0)); ctx.fillText(`−${+amp.toFixed(2)}`, gx - 5, gy + gh - 6);
+  return { X, Y };
+}
+
+function draw() {
+  const { w: W, h: H } = size(), c = FR.colors(), faz = S.mod === "faz", om = w();
+  ctx.clearRect(0, 0, W, H);
+  const top = 22, bandH = Math.max(180, H * 0.46), cy = top + bandH / 2;
+  const Rmax = Math.min(bandH / 2 - 14, W * 0.19), s = Rmax / AMAX;            // piksel / metre
+  const cx = 26 + Rmax, r = S.A * s, TH = th(t);
+
+  // Referans çember: +x yukarı; nokta saat yönünün tersine döner, θ = ωt + φ yukarıdan ölçülür
+  ctx.strokeStyle = c.line; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(cx, cy - Rmax - 8); ctx.lineTo(cx, cy + Rmax + 8); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(cx - Rmax - 8, cy); ctx.lineTo(cx + Rmax + 8, cy); ctx.stroke();
+  ctx.fillStyle = c.muted; ctx.font = "italic 13px 'Instrument Sans', sans-serif"; ctx.textAlign = "left"; ctx.textBaseline = "bottom";
+  ctx.fillText("+x", cx + 4, cy - Rmax - 6);
+  ctx.strokeStyle = c.muted; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(cx, cy, r, 0, 7); ctx.stroke();
+  const px = cx - r * Math.sin(TH), py = cy - r * Math.cos(TH);
+  // açı yayı θ
+  const tn = ((TH % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+  ctx.strokeStyle = c.ok; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(cx, cy, Math.min(26, r * 0.4), -Math.PI / 2, -Math.PI / 2 - tn, true); ctx.stroke();
+  ctx.fillStyle = c.ok; ctx.font = "italic 600 14px 'Instrument Sans', sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  const mid = -Math.PI / 2 - tn / 2, lr = Math.min(26, r * 0.4) + 12;
+  ctx.fillText("θ", cx + lr * Math.cos(mid), cy + lr * Math.sin(mid));
+  ctx.strokeStyle = c.ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(px, py); ctx.stroke();
+  // izdüşüm: noktanın x ekseni üzerindeki gölgesi = BHH yapan cisim
+  const qy = cy - x(t) * s;
+  ctx.strokeStyle = c.muted; ctx.setLineDash([4, 4]); ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(W - 18, qy); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle = c.accent; ctx.beginPath(); ctx.arc(cx, qy, 5, 0, 7); ctx.fill();
+  if (!faz) {
+    // noktanın hız (teğet, Aω) ve ivme (merkeze, Aω²) vektörleri; cismin olanlar bunların x bileşeni
+    const kv = 0.4, ka = 0.2;
+    const vx = -Math.cos(TH) * S.A * om * s * kv, vy = Math.sin(TH) * S.A * om * s * kv;
+    arrow(px, py, px + vx, py + vy, c.accent2, 2.5, "v");
+    arrow(px, py, px + (cx - px) * om * om * ka, py + (cy - py) * om * om * ka, c.ok, 2.5, "a");
+  }
+  ctx.fillStyle = c.ink; ctx.beginPath(); ctx.arc(px, py, 6, 0, 7); ctx.fill();
+
+  // Yay–kütle: zeminden yükselen yay, üstünde kütle; konumu çemberdeki izdüşümle aynı
+  const sx = cx + Rmax + 46, floor = cy + Rmax + 10, mH = 22;
+  ctx.strokeStyle = c.muted; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(sx - 22, floor); ctx.lineTo(sx + 22, floor); ctx.stroke();
+  const springTop = qy + mH / 2, turns = 9;
+  ctx.strokeStyle = c.ink; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(sx, floor);
+  for (let k = 1; k <= turns * 2; k++) { const yy = floor + (springTop - floor) * k / (turns * 2 + 1); ctx.lineTo(sx + (k % 2 ? 9 : -9), yy); }
+  ctx.lineTo(sx, springTop); ctx.stroke();
+  ctx.fillStyle = c.accent; ctx.beginPath(); ctx.roundRect(sx - 16, qy - mH / 2, 32, mH, 4); ctx.fill();
+  ctx.strokeStyle = c.line; ctx.setLineDash([2, 3]);
+  for (const q of [S.A, 0, -S.A]) { ctx.beginPath(); ctx.moveTo(sx - 26, cy - q * s); ctx.lineTo(sx + 26, cy - q * s); ctx.stroke(); }
+  ctx.setLineDash([]);
+  if (!faz) { arrow(sx + 26, qy, sx + 26, qy - v(t) * s * 0.4, c.accent2, 2.2); arrow(sx - 26, qy, sx - 26, qy - a(t) * s * 0.2, c.ok, 2.2); }
+
+  // Grafikler: x–t çemberle aynı ölçekte ve aynı hizada
+  const gx = sx + 58, gw = W - gx - 18;
+  const Bx = { x: gx, y: cy - AMAX * s, w: gw, h: 2 * AMAX * s };
+  graph(Bx, x, AMAX, c.accent, "x", "m", c, faz && S.phi !== 0 ? (tt) => S.A * Math.cos(w() * tt) : null);
+  {
+    // v ve a (faz sekmesinde üzerlerine kesikli x eğrisi çizilir ki kayma görünsün)
+    const y0 = top + bandH + 16, gh = (H - y0 - 30 - 12) / 2, L = 58;
+    const vm = S.A * om * 1.15, am = S.A * om * om * 1.15;
+    const bv = { x: L, y: y0, w: W - L - 18, h: gh }, ba = { x: L, y: y0 + gh + 12, w: W - L - 18, h: gh };
+    graph(bv, v, vm, c.accent2, "v", "m/s", c, faz ? (tt) => x(tt) / S.A * vm / 1.15 : null);
+    graph(ba, a, am, c.ok, "a", "m/s²", c, faz ? (tt) => x(tt) / S.A * am / 1.15 : null);
+    ctx.font = "italic 600 13px 'Instrument Sans', sans-serif"; ctx.textAlign = "right"; ctx.textBaseline = "top";
+    if (faz) {
+      ctx.fillStyle = c.accent2; ctx.fillText("x'ten 90° önde", bv.x + bv.w - 8, bv.y + 5);
+      ctx.fillStyle = c.ok; ctx.fillText("x ile zıt (180°)", ba.x + ba.w - 8, ba.y + 5);
+    }
+    ctx.fillStyle = c.muted; ctx.font = "12px 'JetBrains Mono', monospace"; ctx.textAlign = "center";
+    for (let k = 0; k <= NP; k++) ctx.fillText(k === 0 ? "0" : `${k}T`, ba.x + k / NP * ba.w, ba.y + ba.h + 5);
+  }
+}
+
+// --- Metin ---
+const deg = (r) => Math.round(((r * 180 / Math.PI) % 360 + 360) % 360);
+function render() {
+  const faz = S.mod === "faz", om = w(), f = (n) => (Math.abs(n) < 0.005 ? 0 : n).toFixed(2), TH = th(t);
+  document.getElementById("title").textContent = faz ? "BHH: Konum, Hız, İvme ve Faz" : "Basit Harmonik Hareket ↔ Dairesel Hareket";
+  document.title = (faz ? "BHH: x, v, a ve Faz" : "BHH ve Dairesel Hareket") + " · MaLeTiLabs";
+  setEqs(document.getElementById("formula"), [R`$x = A\cos(\omega t + \varphi), \quad \omega = \dfrac{2\pi}{T}$`]);
+  setEqs(document.getElementById("calc"), faz ? [
+    `$\\omega = 2\\pi / ${S.T} = ${f(om)}\\ \\text{rad/s}, \\ \\theta = \\omega t + \\varphi = ${deg(TH)}°$`,
+    `$\\cA{x} = ${S.A}\\cos(${deg(TH)}°) = \\cA{\\mathbf{${f(x(t))}}}\\ \\text{m}$`,
+    `$\\cB{v} = -A\\omega\\sin\\theta = \\cB{\\mathbf{${f(v(t))}}}\\ \\text{m/s}$`,
+    `$a = -\\omega^2 x = -(${f(om)})^2(${f(x(t))}) = \\mathbf{${f(a(t))}}\\ \\text{m/s}^2$`,
+  ] : [
+    `$\\theta = \\omega t + \\varphi = (${f(om)})(${t.toFixed(2)}) + ${S.phi}° = ${deg(TH)}°$`,
+    `$\\cA{x} = A\\cos\\theta = ${S.A}\\cos(${deg(TH)}°) = \\cA{\\mathbf{${f(x(t))}}}\\ \\text{m}$`,
+    `$v_{\\max} = A\\omega = ${f(S.A * om)}\\ \\text{m/s}, \\ a_{\\max} = A\\omega^2 = ${f(S.A * om * om)}\\ \\text{m/s}^2$`,
+  ]);
+  setEqs(document.getElementById("rules"), faz ? [
+    R`$v$ *,* $x$*'ten 90° önde;* $a$ *ile* $x$ *zıt fazda:* $a = -\omega^2 x$`,
+    R`$\varphi$ *eğriyi zamanda kaydırır (kesikli:* $\varphi = 0$*)*`,
+  ] : [
+    R`*Düzgün dairesel hareketin izdüşümü BHH'dir*`,
+    R`**Uçlarda** $v = 0$*,* $|a|$ *en büyük;* **ortada** $|v|$ *en büyük,* $a = 0$`,
+  ]);
+  draw();
+}
+new ResizeObserver(draw).observe(document.getElementById("cv"));
+new MutationObserver(draw).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+document.fonts?.addEventListener("loadingdone", draw);
+setT(0);
+render();
+</script>
+</body>
+</html>
