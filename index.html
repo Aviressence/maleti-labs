@@ -4,17 +4,44 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>MaLeTiLabs</title>
+<link rel="icon" href="assets/marka/ikon-acik-tema.png" media="(prefers-color-scheme: light)">
+<link rel="icon" href="assets/marka/ikon-koyu-tema.png" media="(prefers-color-scheme: dark)">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=b75fee6d">
-<script src="assets/core.js?v=a0c8a4df"></script>
+<link rel="stylesheet" href="assets/style.css?v=33242439">
+<script src="assets/core.js?v=a1fdf950"></script>
 </head>
 <body>
+
+<!-- Giriş: tam logo belirip kaybolur. Oturum başına bir kez; tıklama/tuş ile geçilir. -->
+<div class="intro" id="intro" hidden><img alt="MaLeTiLabs"></div>
+<script>
+(() => {
+  const el = document.getElementById("intro"), img = el.querySelector("img");
+  let seen = false;
+  try { seen = sessionStorage.getItem("fr-intro") === "1"; sessionStorage.setItem("fr-intro", "1"); } catch {}
+  if (seen || matchMedia("(prefers-reduced-motion: reduce)").matches) { el.remove(); return; }
+  const dark = FR.isDark();
+  el.classList.toggle("dark", dark);
+  let finished = false;
+  const done = () => {
+    if (finished) return; finished = true;
+    el.classList.add("out"); setTimeout(() => el.remove(), 650);
+  };
+  img.onerror = () => el.remove();
+  img.onload = () => { el.classList.add("in"); setTimeout(done, 1700); };
+  img.src = `assets/marka/logo-${dark ? "koyu" : "acik"}.jpg`;
+  el.hidden = false;
+  el.addEventListener("click", done);
+  addEventListener("keydown", done, { once: true });
+  setTimeout(() => { if (!img.complete) el.remove(); }, 2500); // yavaş bağlantıda bekletmez
+})();
+</script>
 
 <header class="bar">
   <div class="wrap">
     <a class="logo" href="index.html">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 12c2.5-6 5-6 7.5 0s5 6 7.5 0 3.5-4 5-2"/><circle cx="12" cy="12" r="10.5" stroke-opacity=".35"/></svg>
+      <img class="mark light" src="assets/marka/ikon-acik-tema.png" alt=""><img class="mark dark" src="assets/marka/ikon-koyu-tema.png" alt="">
       <span>MaLeTi<em>Labs</em></span>
     </a>
     <button class="icon-btn" data-theme-toggle aria-label="Temayı değiştir">
@@ -49,7 +76,7 @@
 const COURSES = {
   fizik1: [
     ["Fizik ve Ölçme, Vektörler", [
-      { grup: "Fizik ve Ölçme", sims: [{ ad: "Birimler ve ön ekler", url: "sims/birimler.html" }, "Boyut analizi", "Anlamlı basamak ve belirsizlik"] },
+      { grup: "Fizik ve Ölçme", sims: [{ ad: "Birimler ve ön ekler", url: "sims/birimler.html" }, { ad: "Boyut analizi", url: "sims/boyut-analizi.html" }, { ad: "Anlamlı basamak ve belirsizlik", url: "sims/anlamli-basamak.html" }] },
       { grup: "Vektörler", sims: [{ ad: "Vektör toplama", url: "sims/vektor-toplama.html" }, { ad: "Bileşenler", url: "sims/vektor-bilesenleri.html" }, { ad: "Skaler & vektörel çarpım", url: "sims/vektor-carpim.html" }] },
     ]],
     ["Hareket, Hız ve İvme", ["x–t / v–t / a–t grafikleri", "Ortalama ve anlık hız"]],
@@ -62,18 +89,20 @@ const COURSES = {
   ],
 };
 
-const chip = (s) => (typeof s === "object"
+// Hazır simülasyon: kendi sayfası. Henüz yapılmamış olan (düz metin): iskelet sayfası + "(yakında)".
+const chip = (s, ders, hafta) => (typeof s === "object"
   ? `<a class="chip" href="${s.url}">${s.ad}</a>`
-  : `<span class="chip" title="Yakında">${s}</span>`);
+  : `<a class="chip todo" href="sims/yakinda.html?${new URLSearchParams({ ad: s, ders, hafta })}">${s} <small>(yakında)</small></a>`);
 
 document.querySelectorAll("[data-course]").forEach((box) => {
-  const list = COURSES[box.dataset.course];
+  const ders = box.dataset.course, list = COURSES[ders];
   box.innerHTML = list.map(([topic, sims], i) => {
+    const c = (s) => chip(s, ders, i + 1);
     const groups = sims.filter((s) => s.grup);
     const top = groups.length
-      ? groups.map((g, k) => `<button class="chip grp" aria-expanded="false" data-g="${k}">${g.grup}</button>`).join("")
-      : sims.map(chip).join("");
-    const subs = groups.map((g, k) => `<div class="week-sub" data-g="${k}" hidden>${g.sims.map(chip).join("")}</div>`).join("");
+      ? groups.map((g, k) => `<button class="cat" aria-expanded="false" data-g="${k}">${g.grup}</button>`).join("")
+      : sims.map(c).join("");
+    const subs = groups.map((g, k) => `<div class="week-sub" data-g="${k}" hidden><span class="sub-label">${g.grup}</span>${g.sims.map(c).join("")}</div>`).join("");
     return `<div class="week" style="animation-delay:${i * 40}ms">
       <span class="no">H${String(i + 1).padStart(2, "0")}</span>
       <span class="topic">${topic}</span>
@@ -81,12 +110,12 @@ document.querySelectorAll("[data-course]").forEach((box) => {
   }).join("");
 });
 
-// Grup düğmesi: kendi listesini açar/kapatır, aynı haftadaki diğer grubu kapatır
+// Kategori düğmesi: kendi listesini açar/kapatır, aynı haftadaki diğer kategoriyi kapatır
 document.addEventListener("click", (e) => {
-  const b = e.target.closest(".grp");
+  const b = e.target.closest(".cat");
   if (!b) return;
   const week = b.closest(".week"), open = b.getAttribute("aria-expanded") !== "true";
-  week.querySelectorAll(".grp").forEach((x) => x.setAttribute("aria-expanded", x === b && open));
+  week.querySelectorAll(".cat").forEach((x) => x.setAttribute("aria-expanded", x === b && open));
   week.querySelectorAll(".week-sub").forEach((s) => (s.hidden = !(open && s.dataset.g === b.dataset.g)));
 });
 </script>

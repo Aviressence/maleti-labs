@@ -4,12 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Birimler ve Ön Ekler · MaLeTiLabs</title>
+<link rel="icon" href="../assets/marka/ikon-acik-tema.png" media="(prefers-color-scheme: light)">
+<link rel="icon" href="../assets/marka/ikon-koyu-tema.png" media="(prefers-color-scheme: dark)">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../assets/katex-0.18.9/katex.min.css">
-<link rel="stylesheet" href="../assets/style.css?v=b75fee6d">
+<link rel="stylesheet" href="../assets/style.css?v=33242439">
 <script src="../assets/katex-0.18.9/katex.min.js"></script>
-<script src="../assets/core.js?v=a0c8a4df"></script>
+<script src="../assets/core.js?v=a1fdf950"></script>
 <script src="../assets/vec.js?v=628245b8"></script>
 <style>
   .ptable { width: 100%; border-collapse: collapse; font-size: 14.5px; }
@@ -22,6 +24,14 @@
   .ptable tr.is-to td { background: color-mix(in srgb, var(--accent-2) 16%, transparent); }
   .ptable tr:last-child td { border-bottom: 0; }
   .in-row { display: grid; grid-template-columns: 1fr 148px; gap: 8px; }
+  .ex-note { font-size: 12.5px; color: var(--muted); padding: 0 8px 4px; }
+  /* Kısa ekranlarda (ör. 1280×720 projektör) tablo sıkışır, şeride yer kalır */
+  @media (max-height: 820px) {
+    .ptable { font-size: 13.5px; }
+    .ptable th, .ptable td { padding: 1px 8px; }
+    .ptable td.sym { font-size: 14.5px; }
+    .card { padding: 6px 12px; }
+  }
 </style>
 </head>
 <body class="sim-page">
@@ -29,7 +39,7 @@
 <header class="bar">
   <div class="wrap">
     <a class="logo" href="../index.html">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 12c2.5-6 5-6 7.5 0s5 6 7.5 0 3.5-4 5-2"/><circle cx="12" cy="12" r="10.5" stroke-opacity=".35"/></svg>
+      <img class="mark light" src="../assets/marka/ikon-acik-tema.png" alt=""><img class="mark dark" src="../assets/marka/ikon-koyu-tema.png" alt="">
       <span>MaLeTi<em>Labs</em></span>
     </a>
     <nav><a href="../index.html#fizik1">← Fizik 1</a></nav>
@@ -49,6 +59,7 @@
     <div class="stack">
       <div class="stage" id="stage"><canvas id="cv"></canvas></div>
       <div class="card">
+        <div class="ex-note">Şeritteki örnekler yaklaşık değerlerdir; büyüklük mertebesini gösterir.</div>
         <table class="ptable">
           <thead><tr><th>Ön ek</th><th>Sembol</th><th>Çarpan</th><th>Ondalık yazılışı</th></tr></thead>
           <tbody id="ptbody"></tbody>
@@ -102,10 +113,29 @@ const UNITS = [
   { u: "g", p: 1, ad: "kütle" }, { u: "s", p: 1, ad: "zaman" }, { u: "N", p: 1, ad: "kuvvet" },
   { u: "J", p: 1, ad: "enerji" }, { u: "W", p: 1, ad: "güç" }, { u: "Hz", p: 1, ad: "frekans" }, { u: "Pa", p: 1, ad: "basınç" },
 ];
-// Uzunluk ölçeğinde gerçek dünyadan örnekler (metre cinsinden)
+// Her birim için gerçek dünyadan yaklaşık örnekler (temel birim cinsinden: m, m², m³, g, s, N, J, W, Hz, Pa).
+// Sıra UNITS ile aynı; küçükten büyüğe.
 const EXAMPLES = [
-  ["atom", 1e-10], ["virüs", 1e-7], ["hücre", 1e-5], ["karınca", 3e-3], ["insan", 1.7],
-  ["futbol sahası", 105], ["Everest", 8.8e3], ["Dünya yarıçapı", 6.4e6], ["Dünya–Ay", 3.8e8], ["Dünya–Güneş", 1.5e11],
+  [["atom", 1e-10], ["virüs", 1e-7], ["hücre", 1e-5], ["karınca", 3e-3], ["insan", 1.7],
+   ["futbol sahası", 105], ["Everest", 8.8e3], ["Dünya yarıçapı", 6.4e6], ["Dünya–Ay", 3.8e8], ["Dünya–Güneş", 1.5e11]],
+  [["hücre kesiti", 1e-10], ["toplu iğne başı", 1e-6], ["kredi kartı", 4.6e-3], ["A4 kâğıt", 6.2e-2], ["oda", 20],
+   ["futbol sahası", 7.1e3], ["İstanbul", 5.3e9], ["Türkiye", 7.8e11]],
+  [["kum tanesi", 1e-12], ["su damlası", 5e-8], ["çay bardağı", 1e-4], ["insan vücudu", 7e-2], ["oda", 50],
+   ["olimpik havuz", 2.5e3], ["Keops piramidi", 2.6e6]],
+  [["bakteri", 1e-12], ["insan hücresi", 1e-9], ["sivrisinek", 2.5e-3], ["yağmur damlası", 3e-2], ["madeni para", 7],
+   ["insan", 7e4], ["otomobil", 1.5e6], ["mavi balina", 1.5e8], ["Eyfel Kulesi", 7.3e9]],
+  [["işlemci döngüsü", 3e-10], ["ışığın 1 m gitmesi", 3.3e-9], ["sesin 1 m gitmesi", 2.9e-3], ["kalp atışı", 0.8],
+   ["1 saat", 3.6e3], ["1 gün", 8.64e4], ["1 yıl", 3.15e7], ["insan ömrü", 2.5e9], ["yazının icadından beri", 1.6e11]],
+  [["motor protein", 5e-12], ["H atomu: e⁻–p⁺ çekimi", 8.2e-8], ["sivrisinek ağırlığı", 2.5e-5], ["elma ağırlığı", 1],
+   ["insan ağırlığı", 700], ["otomobil ağırlığı", 1.5e4], ["jet motoru itişi", 2.5e5], ["Saturn V itişi", 3.4e7]],
+  [["uçan sivrisinek", 3e-7], ["tuşa basmak", 2e-3], ["elmayı 1 m kaldırmak", 1], ["bir bardak çay kaynatmak", 3.3e4],
+   ["günlük besin", 8.4e6], ["1 L benzin", 3.4e7], ["yıldırım", 1e9], ["1 ton TNT", 4.2e9]],
+  [["kol saati", 1e-6], ["LED", 6e-2], ["insan beyni", 20], ["dinlenen insan", 100], ["su ısıtıcısı", 2e3],
+   ["otomobil motoru", 1e5], ["rüzgâr türbini", 3e6], ["nükleer reaktör", 1e9]],
+  [["günde bir kez", 1.16e-5], ["kalp atışı", 1.2], ["şebeke elektriği", 50], ["duyma üst sınırı", 2e4],
+   ["AM radyo", 1e6], ["FM radyo", 1e8], ["Wi-Fi", 2.4e9]],
+  [["duyma eşiği", 2e-5], ["konuşma sesi", 2e-2], ["kâğıdın masaya basıncı", 0.8], ["atmosfer", 1.01e5],
+   ["stiletto topuk", 6e6], ["okyanus dibi", 1.1e8], ["Dünya'nın merkezi", 3.6e11]],
 ];
 
 const S = urlState({ deger: "3.2", birim: 0, kaynak: -6, hedef: -3 });
@@ -224,8 +254,26 @@ function draw() {
   ctx.clearRect(0, 0, W, H);
   const pad = 36, lo = -13, hi = 13;
   const X = (e) => pad + (e - lo) / (hi - lo) * (W - 2 * pad);
-  const axisY = Math.round(H * 0.58);
   const u = UNITS[S.birim], a = byN(S.kaynak), b = byN(S.hedef);
+  const ex = EXAMPLES[S.birim] || [], showEx = ex.length > 0;
+
+  // Örneklerin yerleşimi önceden hesaplanır: zikzak (biri altta, sonraki üstte); aynı tarafta
+  // komşusuyla çakışan etiket çakışmadığı ilk kata (en fazla 3) çıkar. Alan/hacimde konum log10(v)/p.
+  ctx.font = "13px 'Instrument Sans', sans-serif";
+  const TIERS = 3, TIER_H = 17;
+  const right = { up: Array(TIERS).fill(-1e9), down: Array(TIERS).fill(-1e9) };
+  const placed = ex.filter(([, v]) => Math.abs(Math.log10(v) / u.p) <= 12.6).map(([name, v], i) => {
+    const x = X(Math.log10(v) / u.p), side = i % 2 ? "up" : "down", half = ctx.measureText(name).width / 2 + 6;
+    let tier = right[side].findIndex((r) => x - half >= r);
+    if (tier < 0) tier = right[side].indexOf(Math.min(...right[side]));
+    right[side][tier] = x + half;
+    return { name, x, up: side === "up", tier };
+  });
+  const maxTier = (up) => Math.max(0, ...placed.filter((p) => p.up === up).map((p) => p.tier));
+  const downNeed = 40 + maxTier(false) * TIER_H + 16;      // eksenden alttaki son satırın sonuna
+  const upNeed = 50 + maxTier(true) * TIER_H + 19;         // eksenden üstteki son satırın üstüne (+ boşluk)
+  // eksen, alttaki etiketler sığacak kadar aşağıda; üstte yay için olabildiğince yer kalır
+  const axisY = showEx ? Math.min(Math.round(H * 0.62), H - downNeed - 4) : Math.round(H * 0.58);
 
   // eksen ve onluk çentikler
   ctx.strokeStyle = c.muted; ctx.lineWidth = 1.5;
@@ -237,7 +285,8 @@ function draw() {
     ctx.beginPath(); ctx.moveTo(x, axisY - (major ? 9 : 5)); ctx.lineTo(x, axisY + (major ? 9 : 5)); ctx.stroke();
     if (e % 3 === 0) {
       ctx.fillStyle = c.muted;
-      supText("10", String(e), x, axisY + 28, 12, "400", c.muted);
+      // alan/hacimde ön ekin gerçek çarpanı 10^(2n) / 10^(3n)
+      supText("10", String(u.p * e), x, axisY + 28, 12, "400", c.muted);
       ctx.textBaseline = "top";
     }
   }
@@ -249,10 +298,10 @@ function draw() {
   }
   // kaynak → hedef yayı: kaç basamak
   if (a.n !== b.n) {
-    // harflerin üstünden kalkan yay; yazılar yayın tepesinin üstünde, okla çakışmaz
-    const x0 = X(a.n), x1 = X(b.n), y = axisY - 42, cx = (x0 + x1) / 2;
-    // tepedeki yazılar için en az ~58 px yer kalsın (peak ≥ 58)
-    const cy = Math.max(116 - y, y - Math.min(170, Math.max(80, Math.abs(x1 - x0) * 0.5))), peak = (y + cy) / 2;
+    // harflerin (ve üstteki örneklerin) üstünden kalkan yay; yazılar yayın tepesinin üstünde
+    const x0 = X(a.n), x1 = X(b.n), y = axisY - (showEx ? upNeed : 42), cx = (x0 + x1) / 2;
+    // tepedeki iki satır yazı için en az ~53 px yer kalsın (peak ≥ 53)
+    const cy = Math.max(106 - y, y - Math.min(170, Math.max(80, Math.abs(x1 - x0) * 0.5))), peak = (y + cy) / 2;
     ctx.strokeStyle = ctx.fillStyle = c.ink; ctx.lineWidth = 2;
     ctx.beginPath(); ctx.moveTo(x0, y); ctx.quadraticCurveTo(cx, cy, x1, y); ctx.stroke();
     const ang = Math.atan2(y - cy, x1 - cx), h = 11;
@@ -265,15 +314,16 @@ function draw() {
     ctx.fillStyle = c.muted;
     ctx.fillText(`${Math.abs(a.n - b.n)} basamak${u.p > 1 ? ` × ${u.p}` : ""}`, cx, peak - 38);
   }
-  // uzunluk örnekleri
-  if (u.u === "m" && u.p === 1) {
-    ctx.font = "13px 'Instrument Sans', sans-serif"; ctx.textBaseline = "top"; ctx.textAlign = "center";
-    EXAMPLES.forEach(([name, v], i) => {
-      const x = X(Math.log10(v)), y = axisY + 40 + (i % 2) * 22;
+  // gerçek dünya örnekleri (yerleri yukarıda hesaplandı)
+  if (showEx) {
+    ctx.font = "13px 'Instrument Sans', sans-serif"; ctx.textAlign = "center";
+    placed.forEach(({ name, x, up, tier }) => {
+      const ty = up ? axisY - 50 - tier * TIER_H : axisY + 40 + tier * TIER_H; // taban (üstte) / tepe (altta)
       ctx.fillStyle = c.muted; ctx.beginPath(); ctx.arc(x, axisY, 3, 0, 7); ctx.fill();
       ctx.strokeStyle = c.line; ctx.lineWidth = 1; ctx.setLineDash([2, 3]);
-      ctx.beginPath(); ctx.moveTo(x, axisY + 4); ctx.lineTo(x, y - 2); ctx.stroke(); ctx.setLineDash([]);
-      ctx.fillStyle = c.ink; ctx.fillText(name, x, y);
+      ctx.beginPath(); ctx.moveTo(x, axisY + (up ? -4 : 4)); ctx.lineTo(x, up ? ty + 2 : ty - 2); ctx.stroke(); ctx.setLineDash([]);
+      ctx.textBaseline = up ? "bottom" : "top";
+      ctx.fillStyle = c.ink; ctx.fillText(name, x, ty);
     });
   }
 }

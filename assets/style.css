@@ -53,7 +53,7 @@ a { color: inherit; }
 }
 .bar .wrap { display: flex; align-items: center; gap: 24px; height: 56px; }
 .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; font-weight: 600; letter-spacing: -.01em; }
-.logo svg { width: 22px; height: 22px; }
+
 .logo em { font-style: normal; color: var(--accent); }
 .bar nav { display: flex; gap: 20px; margin-left: auto; font-size: 14px; }
 .bar .icon-btn { margin-left: auto; }
@@ -107,7 +107,7 @@ a { color: inherit; }
 
 .weeks { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); }
 .week {
-  display: grid; grid-template-columns: 64px 1fr auto; gap: 16px; align-items: center;
+  display: grid; grid-template-columns: 64px minmax(220px, 1fr) minmax(0, 1.5fr); gap: 16px; align-items: center;
   padding: 14px 16px; border-top: 1px solid var(--line);
   opacity: 0; transform: translateY(6px); animation: rise .5s forwards;
 }
@@ -123,12 +123,34 @@ a { color: inherit; }
 a.chip { border-style: solid; border-color: var(--ink); color: var(--ink); }
 a.chip:hover { background: var(--ink); color: var(--panel); }
 a.chip::before { content: "▸ "; }
-button.chip.grp { font: inherit; font-family: var(--mono); font-size: 12px; cursor: pointer; background: transparent; border-style: solid; border-color: var(--ink); color: var(--ink); }
-button.chip.grp::after { content: " ▾"; }
-button.chip.grp[aria-expanded="true"] { background: var(--ink); color: var(--panel); }
-button.chip.grp[aria-expanded="true"]::after { content: " ▴"; }
-.week-sub { grid-column: 2 / -1; display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; padding-top: 2px; }
+/* Henüz bitmemiş simülasyon: kesikli çerçeve, soluk; yine de tıklanır (iskelet sayfası) */
+a.chip.todo { border-style: dashed; border-color: var(--line); color: var(--muted); }
+a.chip.todo::before { content: ""; }
+a.chip.todo small { font-size: 10.5px; opacity: .8; }
+a.chip.todo:hover { background: transparent; color: var(--ink); border-color: var(--muted); }
+/* Kategori düğmesi (simülasyon değil, bir simülasyon grubu): köşeli, düz yazı, açılır ok.
+   Simülasyonlar yuvarlak, daktilo yazılı haplardır (.chip). */
+.cat {
+  display: inline-flex; align-items: center; gap: 8px;
+  font: 600 13.5px var(--sans); color: var(--ink); cursor: pointer;
+  padding: 6px 10px 6px 12px; border-radius: 4px;
+  background: var(--bg); border: 1px solid var(--line); border-bottom-width: 2px;
+}
+.cat::after {
+  content: ""; width: 7px; height: 7px; margin-top: -3px;
+  border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(45deg);
+  transition: transform .15s;
+}
+.cat:hover { border-color: var(--ink); }
+.cat[aria-expanded="true"] { background: var(--ink); color: var(--panel); border-color: var(--ink); }
+.cat[aria-expanded="true"]::after { transform: rotate(-135deg); margin-top: 3px; }
+/* Açılan kategori: ayrı bir kutu, solunda kategorinin adı */
+.week-sub {
+  grid-column: 2 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; justify-content: flex-end;
+  background: var(--bg); border: 1px solid var(--line); border-left: 3px solid var(--ink); border-radius: 4px; padding: 8px 10px;
+}
 .week-sub[hidden] { display: none; }
+.sub-label { margin-right: auto; font: 600 12px var(--sans); color: var(--muted); letter-spacing: .02em; }
 
 footer { padding: 32px 0 48px; border-top: 1px solid var(--line); color: var(--muted); font-size: 13px; }
 
@@ -159,6 +181,7 @@ footer { padding: 32px 0 48px; border-top: 1px solid var(--line); color: var(--m
   min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 12px;
   border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); padding: 14px; font-size: 15px;
 }
+.panel > * { flex-shrink: 0; } /* taşarsa öğeler ezilmesin (overflow:hidden olan .seg 2 px'e iniyordu) */
 .panel .tag { font-size: 11.5px; }
 .panel .btn { font-size: 14px; padding: 8px 12px; }
 .opt-row { display: grid; grid-template-columns: 62px 1fr; align-items: center; gap: 10px; }
@@ -220,3 +243,40 @@ select.unit { font: 500 15px var(--mono); color: var(--ink); background: var(--b
   .stage { height: 60vh; }
   .panel { overflow: visible; }
 }
+
+/* Üst bar ikonu (şeffaf zemin): açık temada siyah çerçeveli, koyu temada beyaz çerçeveli */
+.logo .mark { width: 32px; height: 32px; }
+.logo .mark.dark { display: none; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .logo .mark.light { display: none; }
+  :root:not([data-theme="light"]) .logo .mark.dark { display: inline; }
+}
+:root[data-theme="dark"] .logo .mark.light { display: none; }
+:root[data-theme="dark"] .logo .mark.dark { display: inline; }
+
+/* Sol alt: GitHub (+ ana sayfada e-posta) */
+.gh { display: inline-grid; place-items: center; width: 38px; height: 38px; color: var(--muted); border-radius: 50%; }
+.gh:hover { color: var(--ink); }
+.gh svg { width: 27px; height: 27px; }
+.site-foot { max-width: 1120px; margin: 0 auto; padding: 18px 16px 28px; display: flex; align-items: center; gap: 12px; font-size: 13px; color: var(--muted); }
+.site-foot a:not(.gh) { color: var(--muted); }
+.site-foot a:not(.gh):hover { color: var(--ink); }
+.gh-corner { position: fixed; left: 14px; bottom: 12px; }
+@media (max-width: 1250px) { .gh-corner { display: none; } } /* dar ekranda çizimin üstüne binmesin */
+
+/* Giriş animasyonu (ana sayfa): zemin, logo görselinin kendi zeminiyle aynı renk */
+.intro { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; background: #fff; cursor: pointer; transition: opacity .6s ease; }
+.intro.dark { background: #0a0b0d; }
+.intro[hidden] { display: none; }
+.intro img {
+  width: min(720px, 86vw); height: auto; opacity: 0; transform: scale(.96); transition: opacity .6s ease, transform 2s ease;
+  /* görselin kenarları zemine yumuşakça erir: dikdörtgen çerçeve ve JPEG ton farkı görünmez */
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 13%, #000 87%, transparent),
+                      linear-gradient(to bottom, transparent, #000 8%, #000 92%, transparent);
+  -webkit-mask-composite: source-in;
+  mask-image: linear-gradient(to right, transparent, #000 13%, #000 87%, transparent),
+              linear-gradient(to bottom, transparent, #000 8%, #000 92%, transparent);
+  mask-composite: intersect;
+}
+.intro.in img { opacity: 1; transform: scale(1); }
+.intro.out { opacity: 0; pointer-events: none; }

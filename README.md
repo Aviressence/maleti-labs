@@ -7,6 +7,9 @@
 ## Şu an olanlar
 
 **Fizik 1**
+- Hafta 1: Birimler ve ön ekler (ölçek şeridi, dönüştürücü, alan/hacim)
+- Hafta 1: Boyut analizi (denklem denetleyici, boyutlardan formül türetme)
+- Hafta 1: Anlamlı basamak ve belirsizlik (A4 ölçümü, sarkaçla g ve hata yayılımı)
 - Hafta 1: Vektör toplama (uç uca / paralelkenar, A + B ve A − B)
 - Hafta 1: Vektörün bileşenleri (Aₓ, A_y, birim vektörler)
 - Hafta 1: Skaler ve vektörel çarpım (izdüşüm, paralelkenar alanı, ⊙/⊗ yönü)
