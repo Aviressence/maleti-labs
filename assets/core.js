@@ -17,7 +17,14 @@ const FR = (() => {
     const next = isDark() ? "light" : "dark";
     document.documentElement.dataset.theme = next;
     store.set("fr-theme", next);
+    syncSwitch();
   }
+  // Tema anahtarının erişilebilirlik durumu (ekran okuyucu: açık = koyu tema)
+  function syncSwitch() {
+    document.querySelectorAll("[data-theme-toggle]").forEach((b) => b.setAttribute("aria-checked", isDark()));
+  }
+  document.addEventListener("DOMContentLoaded", syncSwitch);
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", syncSwitch);
 
   // Canvas çizimleri için CSS token'larını oku
   function colors() {
