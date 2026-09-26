@@ -216,7 +216,7 @@ function fitEqs(el) {
   el.querySelectorAll(".eq").forEach((d) => {
     d.style.fontSize = "";
     const over = d.scrollWidth / d.clientWidth;
-    if (over > 1) d.style.fontSize = Math.max(11, parseFloat(getComputedStyle(d).fontSize) / over) + "px";
+    if (over > 1) d.style.fontSize = Math.max(11, parseFloat(getComputedStyle(d).fontSize) / over * 0.98) + "px";
   });
 }
 

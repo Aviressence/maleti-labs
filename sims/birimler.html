@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Birimler ve Ön Ekler · MaLeTiLabs</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/katex-0.18.9/katex.min.css">
+<link rel="stylesheet" href="../assets/style.css?v=b75fee6d">
+<script src="../assets/katex-0.18.9/katex.min.js"></script>
+<script src="../assets/core.js?v=a0c8a4df"></script>
+<script src="../assets/vec.js?v=628245b8"></script>
+<style>
+  .ptable { width: 100%; border-collapse: collapse; font-size: 14.5px; }
+  .ptable th, .ptable td { padding: 3px 8px; border-bottom: 1px solid var(--line); text-align: left; white-space: nowrap; }
+  .ptable th { font-weight: 400; color: var(--muted); font-size: 12.5px; }
+  .ptable td.sym { font-family: var(--mono); font-weight: 500; font-size: 16px; }
+  .ptable td.dec { font-family: var(--mono); font-size: 13.5px; color: var(--muted); }
+  .ptable tr.base td { font-weight: 600; }
+  .ptable tr.is-from td { background: color-mix(in srgb, var(--accent) 16%, transparent); }
+  .ptable tr.is-to td { background: color-mix(in srgb, var(--accent-2) 16%, transparent); }
+  .ptable tr:last-child td { border-bottom: 0; }
+  .in-row { display: grid; grid-template-columns: 1fr 148px; gap: 8px; }
+</style>
+</head>
+<body class="sim-page">
+
+<header class="bar">
+  <div class="wrap">
+    <a class="logo" href="../index.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 12c2.5-6 5-6 7.5 0s5 6 7.5 0 3.5-4 5-2"/><circle cx="12" cy="12" r="10.5" stroke-opacity=".35"/></svg>
+      <span>MaLeTi<em>Labs</em></span>
+    </a>
+    <nav><a href="../index.html#fizik1">← Fizik 1</a></nav>
+    <button class="icon-btn" data-theme-toggle aria-label="Temayı değiştir">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M1 12h2M21 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4"/></svg>
+    </button>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="sim-title">
+    <div><span class="tag">Fizik 1 · Hafta 01 · Fizik ve Ölçme</span><h1>Birimler ve Ön Ekler</h1></div>
+    <div class="sim-formula" id="formula"></div>
+  </div>
+
+  <div class="sim-layout">
+    <div class="stack">
+      <div class="stage" id="stage"><canvas id="cv"></canvas></div>
+      <div class="card">
+        <table class="ptable">
+          <thead><tr><th>Ön ek</th><th>Sembol</th><th>Çarpan</th><th>Ondalık yazılışı</th></tr></thead>
+          <tbody id="ptbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <aside class="panel">
+      <div>
+        <span class="tag">Değer ve birim</span>
+        <div class="in-row" style="margin-top:5px">
+          <input class="num-input" id="val" type="text" inputmode="decimal" autocomplete="off" spellcheck="false">
+          <select class="unit" id="unit"></select>
+        </div>
+      </div>
+      <div>
+        <span class="tag">Hangi ön ekten</span>
+        <div class="seg pfx from" id="from" style="margin-top:5px"></div>
+      </div>
+      <div>
+        <span class="tag">Hangi ön eke</span>
+        <div class="seg pfx to" id="to" style="margin-top:5px"></div>
+      </div>
+      <div class="calc" id="calc"></div>
+      <div class="rules"><span class="tag">Kurallar</span><div class="calc rules-list" id="rules"></div></div>
+      <div class="row">
+        <button class="btn ghost" id="swap">Yer değiştir</button>
+        <button class="btn ghost" id="fs">Tam ekran</button>
+      </div>
+    </aside>
+  </div>
+</main>
+
+<script>
+// En sık kullanılan SI ön ekleri (desi, deka, hekto fizikte nadir olduğu için yok)
+const PFX = [
+  { ad: "tera",  s: "T", n: 12 },
+  { ad: "giga",  s: "G", n: 9 },
+  { ad: "mega",  s: "M", n: 6 },
+  { ad: "kilo",  s: "k", n: 3 },
+  { ad: "—",     s: "",  n: 0 },
+  { ad: "santi", s: "c", n: -2 },
+  { ad: "mili",  s: "m", n: -3 },
+  { ad: "mikro", s: "μ", n: -6 },
+  { ad: "nano",  s: "n", n: -9 },
+  { ad: "piko",  s: "p", n: -12 },
+];
+// p: birimin kuvveti (alan 2, hacim 3)
+const UNITS = [
+  { u: "m", p: 1, ad: "uzunluk" }, { u: "m", p: 2, ad: "alan" }, { u: "m", p: 3, ad: "hacim" },
+  { u: "g", p: 1, ad: "kütle" }, { u: "s", p: 1, ad: "zaman" }, { u: "N", p: 1, ad: "kuvvet" },
+  { u: "J", p: 1, ad: "enerji" }, { u: "W", p: 1, ad: "güç" }, { u: "Hz", p: 1, ad: "frekans" }, { u: "Pa", p: 1, ad: "basınç" },
+];
+// Uzunluk ölçeğinde gerçek dünyadan örnekler (metre cinsinden)
+const EXAMPLES = [
+  ["atom", 1e-10], ["virüs", 1e-7], ["hücre", 1e-5], ["karınca", 3e-3], ["insan", 1.7],
+  ["futbol sahası", 105], ["Everest", 8.8e3], ["Dünya yarıçapı", 6.4e6], ["Dünya–Ay", 3.8e8], ["Dünya–Güneş", 1.5e11],
+];
+
+const S = urlState({ deger: "3.2", birim: 0, kaynak: -6, hedef: -3 });
+const valEl = document.getElementById("val"), unitEl = document.getElementById("unit");
+const byN = (n) => PFX.find((p) => p.n === n) || PFX[4];
+if (!PFX.some((p) => p.n === S.kaynak)) S.kaynak = 0;
+if (!PFX.some((p) => p.n === S.hedef)) S.hedef = 0;
+S.birim = Math.min(Math.max(0, Math.round(S.birim)), UNITS.length - 1);
+
+unitEl.innerHTML = UNITS.map((x, i) => `<option value="${i}">${x.u}${x.p > 1 ? (x.p === 2 ? "²" : "³") : ""} · ${x.ad}</option>`).join("");
+unitEl.value = S.birim;
+valEl.value = S.deger;
+
+for (const [id, key] of [["from", "kaynak"], ["to", "hedef"]]) {
+  const box = document.getElementById(id);
+  box.innerHTML = [...PFX].reverse().map((p) => `<button data-v="${p.n}" title="${p.ad}">${p.s || "–"}</button>`).join("");
+  segment(id, () => String(S[key]), (v) => { S[key] = +v; S.save(); render(); });
+}
+valEl.oninput = () => { S.deger = valEl.value.trim(); S.save(); render(); };
+unitEl.onchange = () => { S.birim = +unitEl.value; S.save(); render(); };
+document.getElementById("swap").onclick = () => {
+  [S.kaynak, S.hedef] = [S.hedef, S.kaynak]; S.save();
+  for (const [id, key] of [["from", "kaynak"], ["to", "hedef"]])
+    document.querySelectorAll(`#${id} button`).forEach((b) => b.setAttribute("aria-pressed", +b.dataset.v === S[key]));
+  render();
+};
+document.getElementById("fs").onclick = () => FR.fullscreen(document.querySelector(".sim-layout"));
+
+// Ön ek tablosu
+document.getElementById("ptbody").innerHTML = PFX.map((p) =>
+  `<tr data-n="${p.n}" class="${p.n === 0 ? "base" : ""}"><td>${p.n === 0 ? "<i>ön eksiz</i>" : p.ad}</td><td class="sym">${p.s || "–"}</td>` +
+  `<td>${tex(`10^{${p.n}}`)}</td><td class="dec">${fmtDec(p.n)}</td></tr>`).join("");
+
+// 10^n'in ondalık yazılışı, üçlü gruplarla: 0,000 001 / 1 000 000
+function fmtDec(n) {
+  if (n === 0) return "1";
+  if (n > 0) return ("1" + "0".repeat(n)).replace(/\B(?=(\d{3})+$)/g, " ");
+  const frac = "0".repeat(-n - 1) + "1";
+  return "0." + frac.replace(/(\d{3})(?=\d)/g, "$1 ");
+}
+
+// Sayıyı mantis × 10^üs biçimine ayırır (kayan nokta hatası olmadan, metin üzerinden)
+function parseNum(str) {
+  const s = str.replace(",", ".").replace(/\s/g, "");
+  if (!/^[-+]?(\d+\.?\d*|\.\d+)(e[-+]?\d+)?$/i.test(s)) return null;
+  const v = Number(s);
+  if (!isFinite(v)) return null;
+  if (v === 0) return { m: 0, e: 0 };
+  const [mant, ex] = v.toExponential(10).split("e");
+  return { m: +(+mant).toPrecision(10), e: +ex };
+}
+const mstr = (m) => String(+m.toPrecision(6));
+// "3.2 × 10^{-3}" ya da üs 0 ise "3.2"
+const sciTex = (m, e) => (m === 0 ? "0" : e === 0 ? mstr(m) : `${mstr(m)}\\times 10^{${e}}`);
+// Düz ondalık yazılış; tam kısım 5+ basamaksa üçlü gruplanır (1\,000\,000)
+function plain(m, e) {
+  if (m === 0 || e < -6 || e > 9) return null;
+  const v = Number(`${mstr(m)}e${e}`);
+  const s = v.toLocaleString("en-US", { maximumSignificantDigits: 6, useGrouping: false });
+  const [int, frac] = s.split(".");
+  const g = int.replace(/^-/, "").length >= 5 ? int.replace(/\B(?=(\d{3})+$)/g, "\\,") : int;
+  return frac ? `${g}.${frac}` : g;
+}
+const par = (n) => (n < 0 ? `(${n})` : `${n}`);
+
+const unitTex = (sym, u) => `\\text{${sym}${u.u}}${u.p > 1 ? `^{${u.p}}` : ""}`;
+const calc = document.getElementById("calc"), formula = document.getElementById("formula");
+
+function render() {
+  const u = UNITS[S.birim], a = byN(S.kaynak), b = byN(S.hedef), p = u.p;
+  const k = p * (a.n - b.n);
+  const x = parseNum(S.deger);
+  document.querySelectorAll("#ptbody tr").forEach((tr) => {
+    tr.classList.toggle("is-from", +tr.dataset.n === a.n);
+    tr.classList.toggle("is-to", +tr.dataset.n === b.n && b.n !== a.n);
+  });
+
+  if (!x) {
+    setEqs(calc, ["*Geçerli bir sayı yazın (ör. 3.2 veya 4.5e-7).*"]);
+  } else {
+    const from = `\\cA{${unitTex(a.s, u)}}`, to = `\\cB{${unitTex(b.s, u)}}`, base = unitTex("", u);
+    // Yazılan sayı düz ise olduğu gibi, üslü yazıldıysa 10'un kuvvetiyle gösterilir (girdi parseNum'da doğrulandı)
+    const shown = /e/i.test(S.deger) ? sciTex(x.m, x.e) : S.deger.replace(",", ".").replace(/\s/g, "");
+    const pw = (n) => (p > 1 ? `(10^{${n}})^{${p}}` : `10^{${n}}`);
+    const lines = [];
+    // 1) kaynak ön eki temel birime çevir
+    if (a.n !== 0) {
+      const mid = `${shown}\\times ${pw(a.n)}`, norm = sciTex(x.m, x.e + p * a.n);
+      lines.push(`$${shown}\\ ${from} = ${mid}\\ ${base}` + (mid !== norm ? ` = ${norm}\\ ${base}$` : "$"));
+    }
+    // 2) temel birimden hedef ön eke
+    if (b.n !== 0) lines.push(`$1\\ ${base} = ${pw(-b.n)}\\ ${to}` + (p > 1 ? ` = 10^{${-p * b.n}}\\ ${to}$` : "$"));
+    // 3) sonuç
+    const r = sciTex(x.m, x.e + k), dec = plain(x.m, x.e + k);
+    lines.push(`$${shown}\\ ${from} = \\mathbf{${r}}\\ ${to}$` + (dec && dec !== mstr(x.m) && k !== 0 && x.e + k !== 0 ? ` $= ${dec}\\ ${to}$` : ""));
+    const dir = k > 0 ? "sağa" : "sola";
+    lines.push(k === 0 ? "*Ön ekler aynı: sayı değişmez.*"
+      : `**Üs farkı:** $${p > 1 ? `${p}\\times(${a.n} - ${par(b.n)})` : `${a.n} - ${par(b.n)}`} = \\mathbf{${k}}$ → *virgül ${Math.abs(k)} basamak ${dir}*`);
+    setEqs(calc, lines);
+  }
+  draw();
+}
+
+setEqs(formula, ["$x\\ \\text{P}_1u = x\\times 10^{\\,n_1 - n_2}\\ \\text{P}_2u$"]);
+setEqs(document.getElementById("rules"), [
+  "**Tanım:** $1\\ \\text{km} = 10^{3}\\ \\text{m},\\ 1\\ \\text{μs} = 10^{-6}\\ \\text{s}$",
+  "**Alan / hacim:** *üs 2 / 3 ile çarpılır:* $1\\ \\text{cm}^2 = 10^{-4}\\ \\text{m}^2$",
+  "*Küçük birime geçince sayı büyür (ve tersi).*",
+  "**Dikkat:** *temel birim* $\\text{kg}$*; ön ek* $\\text{g}$ *birimine eklenir*",
+]);
+
+// --- Ölçek şeridi: 10^-12 … 10^12, ön ekler ve örnekler ---
+const { ctx, size } = FR.canvas(document.getElementById("cv"));
+function draw() {
+  const { w: W, h: H } = size(), c = FR.colors();
+  ctx.clearRect(0, 0, W, H);
+  const pad = 36, lo = -13, hi = 13;
+  const X = (e) => pad + (e - lo) / (hi - lo) * (W - 2 * pad);
+  const axisY = Math.round(H * 0.58);
+  const u = UNITS[S.birim], a = byN(S.kaynak), b = byN(S.hedef);
+
+  // eksen ve onluk çentikler
+  ctx.strokeStyle = c.muted; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(pad - 10, axisY); ctx.lineTo(W - pad + 10, axisY); ctx.stroke();
+  ctx.font = "12px 'JetBrains Mono', monospace"; ctx.textAlign = "center"; ctx.textBaseline = "top";
+  for (let e = -12; e <= 12; e++) {
+    const x = X(e), major = PFX.some((p) => p.n === e);
+    ctx.strokeStyle = major ? c.ink : c.line; ctx.lineWidth = major ? 1.5 : 1;
+    ctx.beginPath(); ctx.moveTo(x, axisY - (major ? 9 : 5)); ctx.lineTo(x, axisY + (major ? 9 : 5)); ctx.stroke();
+    if (e % 3 === 0) {
+      ctx.fillStyle = c.muted;
+      supText("10", String(e), x, axisY + 28, 12, "400", c.muted);
+      ctx.textBaseline = "top";
+    }
+  }
+  // ön ek harfleri
+  ctx.font = "600 20px 'JetBrains Mono', monospace"; ctx.textBaseline = "bottom";
+  for (const p of PFX) {
+    ctx.fillStyle = p.n === a.n ? c.accent : p.n === b.n ? c.accent2 : c.ink;
+    ctx.fillText(p.s || u.u, X(p.n), axisY - 14);
+  }
+  // kaynak → hedef yayı: kaç basamak
+  if (a.n !== b.n) {
+    // harflerin üstünden kalkan yay; yazılar yayın tepesinin üstünde, okla çakışmaz
+    const x0 = X(a.n), x1 = X(b.n), y = axisY - 42, cx = (x0 + x1) / 2;
+    // tepedeki yazılar için en az ~58 px yer kalsın (peak ≥ 58)
+    const cy = Math.max(116 - y, y - Math.min(170, Math.max(80, Math.abs(x1 - x0) * 0.5))), peak = (y + cy) / 2;
+    ctx.strokeStyle = ctx.fillStyle = c.ink; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(x0, y); ctx.quadraticCurveTo(cx, cy, x1, y); ctx.stroke();
+    const ang = Math.atan2(y - cy, x1 - cx), h = 11;
+    ctx.beginPath(); ctx.moveTo(x1, y);
+    ctx.lineTo(x1 - h * Math.cos(ang - 0.4), y - h * Math.sin(ang - 0.4));
+    ctx.lineTo(x1 - h * Math.cos(ang + 0.4), y - h * Math.sin(ang + 0.4)); ctx.closePath(); ctx.fill();
+    const k = u.p * (a.n - b.n);
+    supText("× 10", String(k), cx, peak - 12, 18, "600", c.ink);
+    ctx.font = "13px 'JetBrains Mono', monospace"; ctx.textAlign = "center"; ctx.textBaseline = "alphabetic";
+    ctx.fillStyle = c.muted;
+    ctx.fillText(`${Math.abs(a.n - b.n)} basamak${u.p > 1 ? ` × ${u.p}` : ""}`, cx, peak - 38);
+  }
+  // uzunluk örnekleri
+  if (u.u === "m" && u.p === 1) {
+    ctx.font = "13px 'Instrument Sans', sans-serif"; ctx.textBaseline = "top"; ctx.textAlign = "center";
+    EXAMPLES.forEach(([name, v], i) => {
+      const x = X(Math.log10(v)), y = axisY + 40 + (i % 2) * 22;
+      ctx.fillStyle = c.muted; ctx.beginPath(); ctx.arc(x, axisY, 3, 0, 7); ctx.fill();
+      ctx.strokeStyle = c.line; ctx.lineWidth = 1; ctx.setLineDash([2, 3]);
+      ctx.beginPath(); ctx.moveTo(x, axisY + 4); ctx.lineTo(x, y - 2); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle = c.ink; ctx.fillText(name, x, y);
+    });
+  }
+}
+// "10" + üst simge; (cx, by) ortalanmış taban çizgisi
+function supText(base, sup, cx, by, size, weight = "600", color) {
+  ctx.save();
+  if (color) ctx.fillStyle = color;
+  ctx.textBaseline = "alphabetic"; ctx.textAlign = "left";
+  const fb = `${weight} ${size}px 'JetBrains Mono', monospace`, fs = `${weight} ${Math.round(size * 0.72)}px 'JetBrains Mono', monospace`;
+  ctx.font = fb; const wb = ctx.measureText(base).width;
+  ctx.font = fs; const ws = ctx.measureText(sup).width;
+  const x0 = cx - (wb + ws) / 2;
+  ctx.font = fb; ctx.fillText(base, x0, by);
+  ctx.font = fs; ctx.fillText(sup, x0 + wb + 1, by - size * 0.45);
+  ctx.restore();
+}
+new ResizeObserver(draw).observe(document.getElementById("cv"));
+// Tema değişince şerit yeniden çizilir
+new MutationObserver(draw).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", draw);
+document.fonts?.addEventListener("loadingdone", draw);
+render();
+</script>
+</body>
+</html>

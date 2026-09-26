@@ -123,6 +123,12 @@ a { color: inherit; }
 a.chip { border-style: solid; border-color: var(--ink); color: var(--ink); }
 a.chip:hover { background: var(--ink); color: var(--panel); }
 a.chip::before { content: "▸ "; }
+button.chip.grp { font: inherit; font-family: var(--mono); font-size: 12px; cursor: pointer; background: transparent; border-style: solid; border-color: var(--ink); color: var(--ink); }
+button.chip.grp::after { content: " ▾"; }
+button.chip.grp[aria-expanded="true"] { background: var(--ink); color: var(--panel); }
+button.chip.grp[aria-expanded="true"]::after { content: " ▴"; }
+.week-sub { grid-column: 2 / -1; display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; padding-top: 2px; }
+.week-sub[hidden] { display: none; }
 
 footer { padding: 32px 0 48px; border-top: 1px solid var(--line); color: var(--muted); font-size: 13px; }
 
@@ -190,6 +196,20 @@ input[type=checkbox] { accent-color: var(--accent); width: 16px; height: 16px; m
 .rules-list i { color: var(--muted); }
 .c1 { color: var(--accent); }
 .c2 { color: var(--accent-2); }
+
+/* Sol sütunda üst üste iki alan (ör. şerit + tablo) */
+.stack { display: flex; flex-direction: column; gap: 14px; min-height: 0; }
+.stack > .stage { flex: 1; }
+.card { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); padding: 10px 14px; }
+.num-input {
+  width: 100%; font: 500 22px var(--mono); color: var(--ink); background: var(--bg);
+  border: 1px solid var(--line); border-radius: var(--radius); padding: 6px 10px;
+}
+.num-input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+.seg.pfx button { padding: 7px 0; font-family: var(--mono); font-size: 14px; }
+.seg.pfx.from button[aria-pressed="true"] { background: var(--accent); color: var(--panel); }
+.seg.pfx.to button[aria-pressed="true"] { background: var(--accent-2); color: var(--panel); }
+select.unit { font: 500 15px var(--mono); color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: var(--radius); padding: 6px 8px; }
 
 /* Tam ekran: çizim + panel birlikte */
 .sim-layout:fullscreen { background: var(--bg); padding: 14px; height: 100vh; }

@@ -6,7 +6,7 @@
 <title>MaLeTiLabs</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=07657dc9">
+<link rel="stylesheet" href="assets/style.css?v=b75fee6d">
 <script src="assets/core.js?v=a0c8a4df"></script>
 </head>
 <body>
@@ -44,9 +44,14 @@
 <script>
 // Müfredat (fizik1.txt, dalgaveoptik.txt) — şimdilik ilk 3 hafta.
 // Yeni simülasyon eklemek için ilgili haftada adı { ad, url } ile değiştir.
+// Bir hafta birden çok konu içeriyorsa simülasyonlar { grup, sims } ile gruplanır;
+// grup düğmesine tıklanınca o grubun simülasyonları haftanın altında açılır.
 const COURSES = {
   fizik1: [
-    ["Fizik ve Ölçme, Vektörler", [{ ad: "Vektör toplama", url: "sims/vektor-toplama.html" }, { ad: "Bileşenler", url: "sims/vektor-bilesenleri.html" }, { ad: "Skaler & vektörel çarpım", url: "sims/vektor-carpim.html" }]],
+    ["Fizik ve Ölçme, Vektörler", [
+      { grup: "Fizik ve Ölçme", sims: [{ ad: "Birimler ve ön ekler", url: "sims/birimler.html" }, "Boyut analizi", "Anlamlı basamak ve belirsizlik"] },
+      { grup: "Vektörler", sims: [{ ad: "Vektör toplama", url: "sims/vektor-toplama.html" }, { ad: "Bileşenler", url: "sims/vektor-bilesenleri.html" }, { ad: "Skaler & vektörel çarpım", url: "sims/vektor-carpim.html" }] },
+    ]],
     ["Hareket, Hız ve İvme", ["x–t / v–t / a–t grafikleri", "Ortalama ve anlık hız"]],
     ["Tek Boyutlu ve İki Boyutlu Hareket", ["Serbest düşme", "Eğik atış", "Bağıl hareket"]],
   ],
@@ -57,18 +62,32 @@ const COURSES = {
   ],
 };
 
+const chip = (s) => (typeof s === "object"
+  ? `<a class="chip" href="${s.url}">${s.ad}</a>`
+  : `<span class="chip" title="Yakında">${s}</span>`);
+
 document.querySelectorAll("[data-course]").forEach((box) => {
   const list = COURSES[box.dataset.course];
   box.innerHTML = list.map(([topic, sims], i) => {
-    const chips = sims.map((s) => {
-      if (typeof s === "object") return `<a class="chip" href="${s.url}">${s.ad}</a>`;
-      return `<span class="chip" title="Yakında">${s}</span>`;
-    }).join("");
+    const groups = sims.filter((s) => s.grup);
+    const top = groups.length
+      ? groups.map((g, k) => `<button class="chip grp" aria-expanded="false" data-g="${k}">${g.grup}</button>`).join("")
+      : sims.map(chip).join("");
+    const subs = groups.map((g, k) => `<div class="week-sub" data-g="${k}" hidden>${g.sims.map(chip).join("")}</div>`).join("");
     return `<div class="week" style="animation-delay:${i * 40}ms">
       <span class="no">H${String(i + 1).padStart(2, "0")}</span>
       <span class="topic">${topic}</span>
-      <div class="sims">${chips}</div></div>`;
+      <div class="sims">${top}</div>${subs}</div>`;
   }).join("");
+});
+
+// Grup düğmesi: kendi listesini açar/kapatır, aynı haftadaki diğer grubu kapatır
+document.addEventListener("click", (e) => {
+  const b = e.target.closest(".grp");
+  if (!b) return;
+  const week = b.closest(".week"), open = b.getAttribute("aria-expanded") !== "true";
+  week.querySelectorAll(".grp").forEach((x) => x.setAttribute("aria-expanded", x === b && open));
+  week.querySelectorAll(".week-sub").forEach((s) => (s.hidden = !(open && s.dataset.g === b.dataset.g)));
 });
 </script>
 </body>
