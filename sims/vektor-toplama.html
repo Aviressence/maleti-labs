@@ -6,11 +6,13 @@
 <title>Vektör Toplama · MaLeTiLabs</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../assets/style.css?v=7e847c89">
+<link rel="stylesheet" href="../assets/katex-0.18.9/katex.min.css">
+<link rel="stylesheet" href="../assets/style.css?v=07657dc9">
+<script src="../assets/katex-0.18.9/katex.min.js"></script>
 <script src="../assets/core.js?v=a0c8a4df"></script>
-<script src="../assets/vec.js?v=088ad2f8"></script>
+<script src="../assets/vec.js?v=7aa14077"></script>
 </head>
-<body>
+<body class="sim-page">
 
 <header class="bar">
   <div class="wrap">
@@ -28,33 +30,37 @@
 <main class="wrap">
   <div class="sim-title">
     <div><span class="tag">Fizik 1 · Hafta 01</span><h1>Vektör Toplama</h1></div>
-    <span class="tag" id="formula">R = A + B</span>
+    <div class="sim-formula" id="formula"></div>
   </div>
 
   <div class="sim-layout">
-    <div class="stage" id="stage"><canvas id="cv" style="touch-action:none"></canvas></div>
+    <div class="stage" id="stage">
+      <canvas id="cv"></canvas>
+      <span class="stage-hint">Okların uçlarını sürükleyin</span>
+    </div>
 
     <aside class="panel">
-      <div>
+      <div class="opt-row">
         <span class="tag">Yöntem</span>
-        <div class="seg" id="mode" style="margin-top:6px">
+        <div class="seg" id="mode">
           <button data-v="tail">Uç uca</button>
           <button data-v="para">Paralelkenar</button>
         </div>
       </div>
-      <div>
+      <div class="opt-row">
         <span class="tag">İşlem</span>
-        <div class="seg" id="op" style="margin-top:6px">
-          <button data-v="add">A + B</button>
-          <button data-v="sub">A − B</button>
+        <div class="seg" id="op">
+          <button data-v="add" data-tex="$\vec A + \vec B$"></button>
+          <button data-v="sub" data-tex="$\vec A - \vec B$"></button>
         </div>
       </div>
-
-      <label class="check"><input type="checkbox" id="comp"> Bileşenleri göster</label>
-      <label class="check"><input type="checkbox" id="snap" checked> Izgaraya yapıştır</label>
+      <div class="checks">
+        <label class="check"><input type="checkbox" id="comp"> Bileşenler</label>
+        <label class="check"><input type="checkbox" id="snap" checked> Izgaraya yapıştır</label>
+      </div>
 
       <table class="vtable">
-        <thead><tr><th></th><th>x</th><th>y</th><th>|v|</th><th>θ</th></tr></thead>
+        <thead><tr><th></th><th data-tex="$x$"></th><th data-tex="$y$"></th><th data-tex="$|\vec v|$"></th><th data-tex="$\theta$"></th></tr></thead>
         <tbody id="tbl"></tbody>
       </table>
       <div class="calc" id="calc"></div>
@@ -64,13 +70,13 @@
         <button class="btn ghost" id="reset">Sıfırla</button>
         <button class="btn ghost" id="fs">Tam ekran</button>
       </div>
-
-      <p class="note">Vektörlerin uçlarını sürükleyin.</p>
     </aside>
   </div>
 </main>
 
 <script>
+document.querySelectorAll("[data-tex]").forEach((el) => (el.innerHTML = rich(el.dataset.tex)));
+
 const S = urlState({ ax: 4, ay: 2, bx: 1, by: 4, yontem: "tail", islem: "add", bilesen: 0 });
 const comp = document.getElementById("comp"), snap = document.getElementById("snap");
 comp.checked = S.bilesen === 1;
@@ -97,17 +103,31 @@ P.draggable(
 
 const tbl = document.getElementById("tbl"), formula = document.getElementById("formula");
 const calc = document.getElementById("calc"), rules = document.getElementById("rules");
+const NAMES = { A: tex("\\vA"), B: tex("\\vB"), R: tex("\\vR") };
 const zero = { x: 0, y: 0 };
+
+const RULES_ADD = [
+  "**Değişme:** $\\vA + \\vB = \\vB + \\vA$",
+  "**Birleşme:** $(\\vA + \\vB) + \\vec C = \\vA + (\\vB + \\vec C)$",
+  "**Bileşenler:** $R_x = A_x + B_x,\\; R_y = A_y + B_y$",
+  "**Üçgen eşitsizliği:** $|\\vA + \\vB| \\le |\\vA| + |\\vB|$",
+];
+const RULES_SUB = [
+  "**Tanım:** $\\vA - \\vB = \\vA + (-\\vB)$",
+  "$-\\vB$: *aynı büyüklük, ters yön*",
+  "**Sıra önemli:** $\\vB - \\vA = -(\\vA - \\vB)$",
+  "**Bileşenler:** $R_x = A_x - B_x,\\; R_y = A_y - B_y$",
+];
 
 function frame() {
   P.layout(0.4, 0.65);
   const c = FR.colors();
   P.grid(c);
-  const a = A(), b2 = Bs(), R = V.add(a, b2);
-  const cA = c.accent, cB = c.accent2, cR = c.ink, bLabel = S.islem === "sub" ? "−B" : "B";
+  const a = A(), b2 = Bs(), R = V.add(a, b2), sub = S.islem === "sub";
+  const cA = c.accent, cB = c.accent2, cR = c.ink, bLabel = sub ? "−B" : "B";
   const comps = (from, v, col) => { if (comp.checked) { P.dashed(from, { x: from.x + v.x, y: from.y }, col); P.dashed({ x: from.x + v.x, y: from.y }, V.add(from, v), col); } };
 
-  if (S.islem === "sub") P.arrow(zero, B(), cB, { dash: [6, 5], label: "B", alpha: 0.45, width: 2 });
+  if (sub) P.arrow(zero, B(), cB, { dash: [6, 5], label: "B", alpha: 0.45, width: 2 });
   if (S.yontem === "tail") {
     P.arrow(zero, a, cA, { label: "A" });
     P.arrow(a, b2, cB, { label: bLabel });
@@ -125,29 +145,22 @@ function frame() {
   P.handle(a, cA);
   P.handle(chained() ? V.add(a, B()) : B(), cB);
 
-  formula.textContent = S.islem === "sub" ? "R = A − B = A + (−B)" : "R = A + B";
-  const row = (name, v, col) =>
-    `<tr><td><span class="sw" style="background:${col}"></span>${name}</td><td>${V.fmt(v.x)}</td><td>${V.fmt(v.y)}</td><td>${V.fmt(V.mag(v))}</td><td>${V.mag(v) < 0.005 ? "–" : V.ang(v).toFixed(1) + "°"}</td></tr>`;
-  tbl.innerHTML = row("A", a, cA) + row("B", B(), cB) + row("R", R, cR);
+  setEqs(formula, [sub ? "$\\vR = \\vA - \\vB = \\vA + (-\\vB)$" : "$\\vR = \\vA + \\vB$"]);
 
-  const f = V.fmt, s = S.islem === "sub" ? "−" : "+";
+  const f = V.fmt, p = V.par, mR = V.mag(R);
+  const deg = (v) => (V.mag(v) < 0.005 ? "–" : V.ang(v).toFixed(1) + "°");
+  const row = (k, v) => `<tr><td>${NAMES[k]}</td><td>${f(v.x)}</td><td>${f(v.y)}</td><td>${f(V.mag(v))}</td><td>${deg(v)}</td></tr>`;
+  const rows = row("A", a) + row("B", B()) + row("R", R);
+  if (tbl._rows !== rows) { tbl._rows = rows; tbl.innerHTML = rows; }
+
+  const op = sub ? "-" : "+";
   setEqs(calc, [
-    `Rₓ = Aₓ ${s} Bₓ = ${f(a.x)} ${s} (${f(S.bx)}) = <b>${f(R.x)}</b>`,
-    `R_y = A_y ${s} B_y = ${f(a.y)} ${s} (${f(S.by)}) = <b>${f(R.y)}</b>`,
-    `|R| = √(Rₓ² + R_y²) = <b>${f(V.mag(R))}</b>`,
-    `θ = <b>${V.mag(R) < 0.005 ? "–" : V.ang(R).toFixed(1) + "°"}</b>`,
+    `$R_x = \\cA{A_x} ${op} \\cB{B_x} = \\cA{${p(a.x)}} ${op} \\cB{${p(S.bx)}} = \\mathbf{${f(R.x)}}$`,
+    `$R_y = \\cA{A_y} ${op} \\cB{B_y} = \\cA{${p(a.y)}} ${op} \\cB{${p(S.by)}} = \\mathbf{${f(R.y)}}$`,
+    `$|\\vR| = \\sqrt{R_x^2 + R_y^2} = \\sqrt{${p(R.x)}^2 + ${p(R.y)}^2} = \\mathbf{${f(mR)}}$`,
+    mR < 0.005 ? "$\\vR = \\vec 0$ *(yön tanımsız)*" : `$\\theta = \\mathbf{${V.ang(R).toFixed(1)}^\\circ}$ *(+x ekseninden)*`,
   ]);
-  setEqs(rules, S.islem === "sub" ? [
-    "A − B = A + (−B)",
-    "−B: B ile aynı büyüklük, ters yön",
-    "A − B ≠ B − A,  B − A = −(A − B)",
-    "Rₓ = Aₓ − Bₓ,  R_y = A_y − B_y",
-  ] : [
-    "A + B = B + A  (değişme)",
-    "(A + B) + C = A + (B + C)  (birleşme)",
-    "Rₓ = Aₓ + Bₓ,  R_y = A_y + B_y",
-    "|A + B| ≤ |A| + |B|",
-  ]);
+  setEqs(rules, sub ? RULES_SUB : RULES_ADD);
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);

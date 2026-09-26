@@ -6,11 +6,13 @@
 <title>Vektörün Bileşenleri · MaLeTiLabs</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../assets/style.css?v=7e847c89">
+<link rel="stylesheet" href="../assets/katex-0.18.9/katex.min.css">
+<link rel="stylesheet" href="../assets/style.css?v=07657dc9">
+<script src="../assets/katex-0.18.9/katex.min.js"></script>
 <script src="../assets/core.js?v=a0c8a4df"></script>
-<script src="../assets/vec.js?v=088ad2f8"></script>
+<script src="../assets/vec.js?v=7aa14077"></script>
 </head>
-<body>
+<body class="sim-page">
 
 <header class="bar">
   <div class="wrap">
@@ -28,25 +30,33 @@
 <main class="wrap">
   <div class="sim-title">
     <div><span class="tag">Fizik 1 · Hafta 01</span><h1>Vektörün Bileşenleri</h1></div>
-    <span class="tag">A = Aₓ î + A_y ĵ</span>
+    <div class="sim-formula" id="formula"></div>
   </div>
+
   <div class="sim-layout">
-    <div class="stage" id="stage"><canvas id="cv"></canvas></div>
+    <div class="stage" id="stage">
+      <canvas id="cv"></canvas>
+      <span class="stage-hint">Okun ucunu sürükleyin</span>
+    </div>
+
     <aside class="panel">
-      <label class="check"><input type="checkbox" id="unit"> Birim vektörler (î, ĵ)</label>
-      <label class="check"><input type="checkbox" id="snap" checked> Izgaraya yapıştır</label>
+      <div class="checks">
+        <label class="check"><input type="checkbox" id="unit"> <span data-tex="Birim vektörler $\hat\imath,\ \hat\jmath$"></span></label>
+        <label class="check"><input type="checkbox" id="snap" checked> Izgaraya yapıştır</label>
+      </div>
       <div class="calc" id="calc"></div>
       <div class="rules"><span class="tag">Kurallar</span><div class="calc rules-list" id="rules"></div></div>
       <div class="row">
         <button class="btn ghost" id="reset">Sıfırla</button>
         <button class="btn ghost" id="fs">Tam ekran</button>
       </div>
-      <p class="note">Vektörün ucunu sürükleyin.</p>
     </aside>
   </div>
 </main>
 
 <script>
+document.querySelectorAll("[data-tex]").forEach((el) => (el.innerHTML = rich(el.dataset.tex)));
+
 const S = urlState({ ax: 4, ay: 3, birim: 0 });
 const unitCb = document.getElementById("unit"), snap = document.getElementById("snap");
 unitCb.checked = S.birim === 1;
@@ -58,12 +68,14 @@ const P = Plane(document.getElementById("cv"));
 P.snap = () => snap.checked;
 P.draggable(() => [{ id: "A", p: { x: S.ax, y: S.ay } }], (id, p) => { S.ax = p.x; S.ay = p.y; }, S.save);
 const calc = document.getElementById("calc"), zero = { x: 0, y: 0 };
+
+setEqs(document.getElementById("formula"), ["$\\vec A = \\cA{A_x}\\,\\ii + \\cB{A_y}\\,\\jj$"]);
 setEqs(document.getElementById("rules"), [
-  "Aₓ = |A| cos θ,  A_y = |A| sin θ",
-  "|A| = √(Aₓ² + A_y²)",
-  "tan θ = A_y / Aₓ",
-  "Aₓ < 0 ise θ = arctan(A_y / Aₓ) + 180°",
-  "|î| = |ĵ| = 1,  î ⊥ ĵ",
+  "**Bileşenler:** $\\cA{A_x} = |\\vec A|\\cos\\theta,\\; \\cB{A_y} = |\\vec A|\\sin\\theta$",
+  "**Büyüklük:** $|\\vec A| = \\sqrt{A_x^2 + A_y^2}$",
+  "**Yön:** $\\tan\\theta = A_y / A_x$",
+  "*x bileşeni negatifse θ'ya 180° eklenir*",
+  "**Birim vektörler:** $|\\ii| = |\\jj| = 1,\\; \\ii \\perp \\jj$",
 ]);
 
 function frame() {
@@ -72,24 +84,23 @@ function frame() {
   P.grid(c);
   const A = { x: S.ax, y: S.ay }, m = V.mag(A), th = V.ang(A);
   P.dashed({ x: 0, y: A.y }, A, c.muted);
-  P.arrow(zero, { x: A.x, y: 0 }, c.accent, { width: 3, label: "Aₓ", side: -1 });
-  P.arrow({ x: A.x, y: 0 }, { x: 0, y: A.y }, c.accent2, { width: 3, label: "A_y", side: A.x * A.y >= 0 ? -1 : 1 });
+  P.arrow(zero, { x: A.x, y: 0 }, c.accent, { width: 3, label: "A_x", side: -1, vec: false });
+  P.arrow({ x: A.x, y: 0 }, { x: 0, y: A.y }, c.accent2, { width: 3, label: "A_y", side: A.x * A.y >= 0 ? -1 : 1, vec: false });
   if (S.birim) {
-    P.arrow(zero, { x: 1, y: 0 }, c.ink, { width: 4, label: "î", side: -1 });
-    P.arrow(zero, { x: 0, y: 1 }, c.ink, { width: 4, label: "ĵ" });
+    P.arrow(zero, { x: 1, y: 0 }, c.ink, { width: 4, label: "î", side: -1, vec: false });
+    P.arrow(zero, { x: 0, y: 1 }, c.ink, { width: 4, label: "ĵ", vec: false });
   }
   P.arrow(zero, A, c.ink, { width: 3.5, label: "A" });
   if (m > 0.3) P.arc(zero, 34, 0, th, c.ink, "θ");
   P.handle(A, c.ink);
 
-  const f = V.fmt, t = th.toFixed(1);
-  const ax = `<span style="color:${c.accent}">Aₓ</span>`, ay = `<span style="color:${c.accent2}">A_y</span>`;
-  setEqs(calc, m < 0.005 ? ["A = 0"] : [
-    `|A| = √(Aₓ² + A_y²) = <b>${f(m)}</b>`,
-    `θ = <b>${t}°</b>`,
-    `${ax} = |A| cos θ = ${f(m)} · cos ${t}° = <b>${f(A.x)}</b>`,
-    `${ay} = |A| sin θ = ${f(m)} · sin ${t}° = <b>${f(A.y)}</b>`,
-    `A = <b>${f(A.x)}</b> î + <b>${f(A.y)}</b> ĵ`,
+  const f = V.fmt, t = th.toFixed(1), sign = A.y < 0 ? "-" : "+";
+  setEqs(calc, m < 0.005 ? ["$\\vec A = \\vec 0$ *(yön tanımsız)*"] : [
+    `$|\\vec A| = \\sqrt{A_x^2 + A_y^2} = \\mathbf{${f(m)}}$`,
+    `$\\theta = \\mathbf{${t}^\\circ}$ *(+x ekseninden)*`,
+    `$\\cA{A_x} = |\\vec A|\\cos\\theta = ${f(m)}\\cdot\\cos ${t}^\\circ = \\cA{\\mathbf{${f(A.x)}}}$`,
+    `$\\cB{A_y} = |\\vec A|\\sin\\theta = ${f(m)}\\cdot\\sin ${t}^\\circ = \\cB{\\mathbf{${f(A.y)}}}$`,
+    `$\\vec A = \\cA{${f(A.x)}}\\,\\ii ${sign} \\cB{${f(Math.abs(A.y))}}\\,\\jj$`,
   ]);
   requestAnimationFrame(frame);
 }

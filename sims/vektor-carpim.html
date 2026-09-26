@@ -6,11 +6,13 @@
 <title>Skaler ve Vektörel Çarpım · MaLeTiLabs</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../assets/style.css?v=7e847c89">
+<link rel="stylesheet" href="../assets/katex-0.18.9/katex.min.css">
+<link rel="stylesheet" href="../assets/style.css?v=07657dc9">
+<script src="../assets/katex-0.18.9/katex.min.js"></script>
 <script src="../assets/core.js?v=a0c8a4df"></script>
-<script src="../assets/vec.js?v=088ad2f8"></script>
+<script src="../assets/vec.js?v=7aa14077"></script>
 </head>
-<body>
+<body class="sim-page">
 
 <header class="bar">
   <div class="wrap">
@@ -28,28 +30,36 @@
 <main class="wrap">
   <div class="sim-title">
     <div><span class="tag">Fizik 1 · Hafta 01</span><h1>Skaler ve Vektörel Çarpım</h1></div>
-    <span class="tag" id="formula"></span>
+    <div class="sim-formula" id="formula"></div>
   </div>
+
   <div class="sim-layout">
-    <div class="stage" id="stage"><canvas id="cv"></canvas></div>
+    <div class="stage" id="stage">
+      <canvas id="cv"></canvas>
+      <span class="stage-hint">Okların uçlarını sürükleyin</span>
+    </div>
+
     <aside class="panel">
       <div class="seg" id="mode">
-        <button data-v="dot">Skaler A·B</button>
-        <button data-v="cross">Vektörel A×B</button>
+        <button data-v="dot" data-tex="Skaler $\vec A\cdot\vec B$"></button>
+        <button data-v="cross" data-tex="Vektörel $\vec A\times\vec B$"></button>
       </div>
-      <label class="check"><input type="checkbox" id="snap" checked> Izgaraya yapıştır</label>
+      <div class="checks">
+        <label class="check"><input type="checkbox" id="snap" checked> Izgaraya yapıştır</label>
+      </div>
       <div class="calc" id="calc"></div>
       <div class="rules"><span class="tag">Kurallar</span><div class="calc rules-list" id="rules"></div></div>
       <div class="row">
         <button class="btn ghost" id="reset">Sıfırla</button>
         <button class="btn ghost" id="fs">Tam ekran</button>
       </div>
-      <p class="note" id="note"></p>
     </aside>
   </div>
 </main>
 
 <script>
+document.querySelectorAll("[data-tex]").forEach((el) => (el.innerHTML = rich(el.dataset.tex)));
+
 const S = urlState({ ax: 5, ay: 1, bx: 2, by: 4, islem: "dot" });
 const snap = document.getElementById("snap");
 segment("mode", () => S.islem, (v) => { S.islem = v; S.save(); });
@@ -63,8 +73,25 @@ P.draggable(
   (id, p) => { if (id === "A") { S.ax = p.x; S.ay = p.y; } else { S.bx = p.x; S.by = p.y; } },
   S.save
 );
-const calc = document.getElementById("calc"), rules = document.getElementById("rules"), note = document.getElementById("note"), formula = document.getElementById("formula");
+const calc = document.getElementById("calc"), rules = document.getElementById("rules"), formula = document.getElementById("formula");
 const zero = { x: 0, y: 0 };
+
+const RULES_DOT = [
+  "**Tanım:** $\\vA\\cdot\\vB = |\\vA||\\vB|\\cos\\varphi$",
+  "**Değişme:** $\\vA\\cdot\\vB = \\vB\\cdot\\vA$",
+  "**Diklik:** $\\vA\\perp\\vB \\iff \\vA\\cdot\\vB = 0$",
+  "**Birim:** $\\ii\\cdot\\ii = \\jj\\cdot\\jj = 1,\\; \\ii\\cdot\\jj = 0$",
+  "**İşaret:** $\\varphi < 90^\\circ \\Rightarrow +,\\;\\; \\varphi > 90^\\circ \\Rightarrow -$",
+  "*Sonuç bir sayıdır (skaler), yönü yoktur.*",
+];
+const RULES_CROSS = [
+  "**Büyüklük:** $|\\vA\\times\\vB| = |\\vA||\\vB|\\sin\\varphi$",
+  "*Büyüklük, paralelkenarın alanına eşittir.*",
+  "**Ters değişme:** $\\vA\\times\\vB = -\\,\\vB\\times\\vA$",
+  "**Paralellik:** $\\vA\\parallel\\vB \\iff \\vA\\times\\vB = \\vec 0$",
+  "**Birim:** $\\ii\\times\\jj = \\kk,\\; \\jj\\times\\kk = \\ii,\\; \\kk\\times\\ii = \\jj$",
+  "**Yön:** *sağ el kuralı*; sonuç hem $\\vA$ hem $\\vB$'ye diktir",
+];
 
 // ⊙ sayfadan dışarı, ⊗ sayfanın içine
 function zSymbol(p, out, color) {
@@ -88,16 +115,16 @@ function frame() {
   const mA = V.mag(A), mB = V.mag(B), d = V.dot(A, B), x = V.cross(A, B);
   const ok = mA > 0.005 && mB > 0.005;
   const phi = ok ? Math.atan2(x, d) * 180 / Math.PI : 0;   // A'dan B'ye işaretli açı
-  const f = V.fmt;
+  const dot = S.islem === "dot";
 
-  if (S.islem === "dot" && ok) {
+  if (dot && ok) {
     // B'nin A doğrultusu üzerine izdüşümü
     const k = d / (mA * mA), proj = { x: A.x * k, y: A.y * k }, far = 40 / mA;
     P.dashed({ x: -A.x * far, y: -A.y * far }, { x: A.x * far, y: A.y * far }, c.line, 0.9);
     P.dashed(B, proj, c.accent2);
-    P.arrow(zero, proj, c.ink, { width: 5, alpha: 0.85, label: "|B| cos φ", side: -1 });
+    P.arrow(zero, proj, c.ink, { width: 5, alpha: 0.85, label: "|B| cos φ", side: -1, vec: false });
   }
-  if (S.islem === "cross") {
+  if (!dot) {
     const pts = [zero, A, V.add(A, B), B].map(P.toPx);
     ctx.save(); ctx.fillStyle = c.ink; ctx.globalAlpha = 0.09;
     ctx.beginPath(); pts.forEach((p) => ctx.lineTo(p.x, p.y)); ctx.closePath(); ctx.fill(); ctx.restore();
@@ -109,43 +136,29 @@ function frame() {
   if (ok && Math.abs(phi) > 1) P.arc(zero, 32, V.ang(A), V.ang(A) + phi, c.ink, "φ");
   P.handle(A, c.accent); P.handle(B, c.accent2);
 
-  const ph = Math.abs(phi).toFixed(1);
-  if (S.islem === "dot") {
-    formula.textContent = "A·B = |A||B| cos φ";
+  const f = V.fmt, p = V.par, ph = Math.abs(phi).toFixed(1);
+  const fi = ok ? `$\\varphi = \\mathbf{${ph}^\\circ}$ *(iki vektör arasındaki açı)*` : "*Vektörlerden biri sıfır; açı tanımsız.*";
+  if (dot) {
+    setEqs(formula, ["$\\vA\\cdot\\vB = |\\vA||\\vB|\\cos\\varphi$"]);
     setEqs(calc, [
-      `φ = <b>${ph}°</b>`,
-      `A·B = AₓBₓ + A_yB_y`,
-      `A·B = (${f(A.x)})(${f(B.x)}) + (${f(A.y)})(${f(B.y)}) = <b>${f(d)}</b>`,
-      `A·B = |A||B| cos φ`,
-      `A·B = ${f(mA)} · ${f(mB)} · cos ${ph}° = <b>${f(d)}</b>`,
+      fi,
+      `$\\vA\\cdot\\vB = \\cA{A_x}\\cB{B_x} + \\cA{A_y}\\cB{B_y}$`,
+      `$\\vA\\cdot\\vB = \\cA{${p(A.x)}}\\cdot\\cB{${p(B.x)}} + \\cA{${p(A.y)}}\\cdot\\cB{${p(B.y)}} = \\mathbf{${f(d)}}$`,
+      `$\\vA\\cdot\\vB = ${f(mA)}\\cdot ${f(mB)}\\cdot\\cos ${ph}^\\circ = \\mathbf{${f(d)}}$`,
     ]);
-    setEqs(rules, [
-      "A·B = |A||B| cos φ = AₓBₓ + A_yB_y",
-      "A·B = B·A",
-      "A ⊥ B  ⇔  A·B = 0",
-      "î·î = ĵ·ĵ = 1,  î·ĵ = 0",
-      "φ < 90° → +,  φ = 90° → 0,  φ > 90° → −",
-    ]);
-    note.textContent = "Sonuç bir sayıdır (skaler), yönü yoktur.";
+    setEqs(rules, RULES_DOT);
   } else {
-    formula.textContent = "|A×B| = |A||B| sin φ";
+    const dir = Math.abs(x) < 0.005 ? "yok *(vektörler paralel)*"
+      : x > 0 ? "$+z$, *sayfadan dışarı* $\\odot$" : "$-z$, *sayfanın içine* $\\otimes$";
+    setEqs(formula, ["$|\\vA\\times\\vB| = |\\vA||\\vB|\\sin\\varphi$"]);
     setEqs(calc, [
-      `φ = <b>${ph}°</b>`,
-      `A×B = (AₓB_y − A_yBₓ) k̂`,
-      `A×B = ((${f(A.x)})(${f(B.y)}) − (${f(A.y)})(${f(B.x)})) k̂ = <b>${f(x)} k̂</b>`,
-      `|A×B| = |A||B| sin φ`,
-      `|A×B| = ${f(mA)} · ${f(mB)} · sin ${ph}° = <b>${f(Math.abs(x))}</b>`,
-      `Yön: <b>${Math.abs(x) < 0.005 ? "–" : x > 0 ? "+z, sayfadan dışarı ⊙" : "−z, sayfanın içine ⊗"}</b>`,
+      fi,
+      `$\\vA\\times\\vB = (\\cA{A_x}\\cB{B_y} - \\cA{A_y}\\cB{B_x})\\,\\kk$`,
+      `$\\vA\\times\\vB = \\big(\\cA{${p(A.x)}}\\cdot\\cB{${p(B.y)}} - \\cA{${p(A.y)}}\\cdot\\cB{${p(B.x)}}\\big)\\kk = \\mathbf{${f(x)}}\\,\\kk$`,
+      `$|\\vA\\times\\vB| = ${f(mA)}\\cdot ${f(mB)}\\cdot\\sin ${ph}^\\circ = \\mathbf{${f(Math.abs(x))}}$`,
+      `**Yön:** ${dir}`,
     ]);
-    setEqs(rules, [
-      "|A×B| = |A||B| sin φ = paralelkenar alanı",
-      "A×B = −(B×A)",
-      "A ∥ B  ⇔  A×B = 0",
-      "î×ĵ = k̂,  ĵ×k̂ = î,  k̂×î = ĵ",
-      "Yön: sağ el kuralı",
-      "A×B, hem A'ya hem B'ye diktir",
-    ]);
-    note.textContent = "Sonuç bir vektördür; bu düzlemde yalnızca z bileşeni vardır.";
+    setEqs(rules, RULES_CROSS);
   }
   requestAnimationFrame(frame);
 }

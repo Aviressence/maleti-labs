@@ -59,3 +59,4 @@ Bu proje [MIT](LICENSE) lisansı ile yayınlanmıştır.
 Dalga simülatörü dışındaki tüm içerik bana aittir.
 Dalga simülatörü, Eliott Morgensztern'in [Wave Simulator](https://github.com/starrfree/wave-simulator) projesinden esinlenerek geliştirilmiştir.
 Lisansı ve kaynakları `sims/dalga-simulatoru/` klasöründedir.
+Formüller [KaTeX](https://katex.org) (MIT) ile gösterilir; lisansı `assets/katex-0.18.9/` klasöründedir.
