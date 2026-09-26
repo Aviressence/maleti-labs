@@ -18,7 +18,7 @@ def digest(name):
 
 
 changed = 0
-for page in [ROOT / "index.html", *sorted((ROOT / "sims").glob("*.html"))]:
+for page in [ROOT / "index.html", ROOT / "404.html", *sorted((ROOT / "sims").glob("*.html"))]:
     text = page.read_text(encoding="utf-8")
     new = REF.sub(lambda m: f'{m.group(1)}?v={digest(m.group(2))}"', text)
     if new != text:

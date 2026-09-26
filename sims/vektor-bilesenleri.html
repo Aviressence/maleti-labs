@@ -73,8 +73,10 @@ setEqs(document.getElementById("formula"), ["$\\vec A = \\cA{A_x}\\,\\ii + \\cB{
 setEqs(document.getElementById("rules"), [
   "**Bileşenler:** $\\cA{A_x} = |\\vec A|\\cos\\theta,\\; \\cB{A_y} = |\\vec A|\\sin\\theta$",
   "**Büyüklük:** $|\\vec A| = \\sqrt{A_x^2 + A_y^2}$",
-  "**Yön:** $\\tan\\theta = A_y / A_x$",
-  "*x bileşeni negatifse θ'ya 180° eklenir*",
+  "**Yön:** $\\tan\\theta = A_y / A_x$ *(bölgeye dikkat)*",
+  "$A_x > 0$: $\\theta = \\arctan(A_y/A_x)$ *(negatif çıkarsa +360°)*",
+  "$A_x < 0$: $\\theta = \\arctan(A_y/A_x) + 180^\\circ$",
+  "$A_x = 0$: $\\theta = 90^\\circ$ *veya* $270^\\circ$",
   "**Birim vektörler:** $|\\ii| = |\\jj| = 1,\\; \\ii \\perp \\jj$",
 ]);
 

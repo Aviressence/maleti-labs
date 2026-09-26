@@ -79,7 +79,7 @@ const zero = { x: 0, y: 0 };
 const RULES_DOT = [
   "**Tanım:** $\\vA\\cdot\\vB = |\\vA||\\vB|\\cos\\varphi$",
   "**Değişme:** $\\vA\\cdot\\vB = \\vB\\cdot\\vA$",
-  "**Diklik:** $\\vA\\perp\\vB \\iff \\vA\\cdot\\vB = 0$",
+  "**Diklik** $(\\vA,\\vB\\neq\\vec 0)$**:** $\\vA\\perp\\vB \\iff \\vA\\cdot\\vB = 0$",
   "**Birim:** $\\ii\\cdot\\ii = \\jj\\cdot\\jj = 1,\\; \\ii\\cdot\\jj = 0$",
   "**İşaret:** $\\varphi < 90^\\circ \\Rightarrow +,\\;\\; \\varphi > 90^\\circ \\Rightarrow -$",
   "*Sonuç bir sayıdır (skaler), yönü yoktur.*",
@@ -88,9 +88,10 @@ const RULES_CROSS = [
   "**Büyüklük:** $|\\vA\\times\\vB| = |\\vA||\\vB|\\sin\\varphi$",
   "*Büyüklük, paralelkenarın alanına eşittir.*",
   "**Ters değişme:** $\\vA\\times\\vB = -\\,\\vB\\times\\vA$",
-  "**Paralellik:** $\\vA\\parallel\\vB \\iff \\vA\\times\\vB = \\vec 0$",
+  "**Paralellik** $(\\vA,\\vB\\neq\\vec 0)$**:** $\\vA\\parallel\\vB \\iff \\vA\\times\\vB = \\vec 0$",
   "**Birim:** $\\ii\\times\\jj = \\kk,\\; \\jj\\times\\kk = \\ii,\\; \\kk\\times\\ii = \\jj$",
   "**Yön:** *sağ el kuralı*; sonuç hem $\\vA$ hem $\\vB$'ye diktir",
+  "*Çizim xy düzleminde;* $+\\kk$ *dışarı,* $-\\kk$ *içeri*",
 ];
 
 // ⊙ sayfadan dışarı, ⊗ sayfanın içine
