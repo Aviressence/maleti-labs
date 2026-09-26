@@ -7,7 +7,8 @@ const FR = (() => {
 
   // Tema: kayıtlı tercih > sistem
   const saved = store.get("fr-theme");
-  if (saved) document.documentElement.dataset.theme = saved;
+  // Varsayılan koyu tema; kullanıcı seçtiyse onun tercihi
+  document.documentElement.dataset.theme = saved === "light" ? "light" : "dark";
 
   function isDark() {
     const t = document.documentElement.dataset.theme;
@@ -84,7 +85,7 @@ const FR = (() => {
     const el = document.createElement(sim ? "div" : "footer");
     el.className = sim ? "gh-corner" : "site-foot";
     el.innerHTML = `<a class="gh" href="${GH}" target="_blank" rel="noopener" aria-label="GitHub" title="GitHub">${GH_ICON}</a>` +
-      (sim ? "" : `<span>Öneri ve hata bildirimi için: <a href="mailto:${MAIL}">${MAIL}</a></span>`);
+      (sim ? "" : `<span>İstek, öneri ve geri bildirimleriniz için: <a href="mailto:${MAIL}">${MAIL}</a></span>`);
     (sim ? document.body : document.querySelector("main")?.parentNode || document.body).appendChild(el);
   });
 

@@ -46,13 +46,10 @@ a { color: inherit; }
 
 /* Üst bar */
 .bar {
-  position: sticky; top: 0; z-index: 10;
-  background: color-mix(in srgb, var(--bg) 88%, transparent);
-  backdrop-filter: blur(6px);
-  border-bottom: 1px solid var(--line);
+  position: relative; z-index: 10;
 }
-.bar .wrap { display: flex; align-items: center; gap: 24px; height: 56px; }
-.logo { display: flex; align-items: center; gap: 10px; font-size: 21px; text-decoration: none; font-weight: 600; letter-spacing: -.01em; }
+.bar .wrap { display: flex; align-items: center; gap: 24px; height: 72px; max-width: none; padding: 0 24px; }
+.logo { display: flex; align-items: center; gap: 12px; font-size: 25px; text-decoration: none; font-weight: 600; letter-spacing: -.01em; }
 
 .logo em { font-style: normal; color: var(--ink); } /* Labs: açıkta siyah, koyuda beyaz */
 .bar nav { display: flex; gap: 20px; margin-left: auto; font-size: 14px; }
@@ -166,7 +163,7 @@ footer { padding: 32px 0 48px; border-top: 1px solid var(--line); color: var(--m
 }
 
 /* ---------- Simülasyon sayfası: ekrana tam sığar, sayfa kaymaz ---------- */
-.sim-page main.wrap { display: flex; flex-direction: column; height: calc(100vh - 57px); height: calc(100dvh - 57px); }
+.sim-page main.wrap { display: flex; flex-direction: column; height: calc(100vh - 72px); height: calc(100dvh - 72px); }
 .sim-title { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; padding: 12px 0 10px; flex-wrap: wrap; }
 .sim-title h1 { margin: 2px 0 0; font-size: 26px; letter-spacing: -.02em; font-weight: 600; line-height: 1.15; }
 .sim-formula { font-size: 17px; }
@@ -245,7 +242,7 @@ select.unit { font: 500 15px var(--mono); color: var(--ink); background: var(--b
 }
 
 /* Üst bar ikonu (şeffaf zemin): açık temada siyah çerçeveli, koyu temada beyaz çerçeveli */
-.logo .mark { width: 46px; height: 46px; }
+.logo .mark { width: 58px; height: 58px; }
 .logo .mark.dark { display: none; }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .logo .mark.light { display: none; }
@@ -255,9 +252,9 @@ select.unit { font: 500 15px var(--mono); color: var(--ink); background: var(--b
 :root[data-theme="dark"] .logo .mark.dark { display: inline; }
 
 /* Sol alt: GitHub (+ ana sayfada e-posta) */
-.gh { display: inline-grid; place-items: center; width: 38px; height: 38px; color: var(--muted); border-radius: 50%; }
+.gh { display: inline-grid; place-items: center; width: 46px; height: 46px; color: var(--muted); border-radius: 50%; }
 .gh:hover { color: var(--ink); }
-.gh svg { width: 27px; height: 27px; }
+.gh svg { width: 33px; height: 33px; }
 .site-foot { max-width: 1120px; margin: 0 auto; padding: 18px 16px 28px; display: flex; align-items: center; gap: 12px; font-size: 13px; color: var(--muted); }
 .site-foot a:not(.gh) { color: var(--muted); }
 .site-foot a:not(.gh):hover { color: var(--ink); }
@@ -303,34 +300,29 @@ select.unit { font: 500 15px var(--mono); color: var(--ink); background: var(--b
 
 /* Tema anahtarı: açıkta güneş (sarı) solda, koyuda ay (beyaz-mavi) sağda */
 .theme-switch {
-  position: relative; flex: none; width: 56px; height: 30px; padding: 0; cursor: pointer;
+  position: relative; flex: none; width: 66px; height: 36px; padding: 0; cursor: pointer;
   border-radius: 999px; border: 1px solid var(--line); background: var(--bg); transition: background .25s, border-color .25s;
 }
 .theme-switch:hover { border-color: var(--muted); }
 .theme-switch:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .theme-switch .knob {
-  position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%;
+  position: absolute; top: 3px; left: 3px; width: 28px; height: 28px; border-radius: 50%;
   display: grid; place-items: center; background: #fff7d6; box-shadow: 0 1px 3px rgba(0, 0, 0, .25);
   transition: transform .28s cubic-bezier(.4, .2, .2, 1.2), background .25s;
 }
-.theme-switch svg { width: 16px; height: 16px; grid-area: 1 / 1; transition: opacity .2s, transform .28s; }
+.theme-switch svg { width: 19px; height: 19px; grid-area: 1 / 1; transition: opacity .2s, transform .28s; }
 .theme-switch .sun { color: #f2a900; }
 .theme-switch .moon { color: #cfe2ff; opacity: 0; transform: rotate(-60deg) scale(.6); }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .theme-switch { background: #0c1420; }
-  :root:not([data-theme="light"]) .theme-switch .knob { transform: translateX(26px); background: #22324a; }
+  :root:not([data-theme="light"]) .theme-switch .knob { transform: translateX(30px); background: #22324a; }
   :root:not([data-theme="light"]) .theme-switch .sun { opacity: 0; transform: rotate(60deg) scale(.6); }
   :root:not([data-theme="light"]) .theme-switch .moon { opacity: 1; transform: none; }
 }
 :root[data-theme="dark"] .theme-switch { background: #0c1420; }
-:root[data-theme="dark"] .theme-switch .knob { transform: translateX(26px); background: #22324a; }
+:root[data-theme="dark"] .theme-switch .knob { transform: translateX(30px); background: #22324a; }
 :root[data-theme="dark"] .theme-switch .sun { opacity: 0; transform: rotate(60deg) scale(.6); }
 :root[data-theme="dark"] .theme-switch .moon { opacity: 1; transform: none; }
 @media (prefers-reduced-motion: reduce) { .theme-switch .knob, .theme-switch svg { transition: none; } }
 
-/* Geniş ekranda (sol boşluk ≥ ~320 px) logo üst bardan çıkar, sol üst boşlukta büyük görünür.
-   Üst bar yapışkan olduğu için logo da sayfa kaydırılınca yerinde kalır. Dar ekranda üst barda kalır. */
-@media (min-width: 1760px) {
-  .bar .logo { position: absolute; top: 72px; left: 28px; gap: 16px; font-size: 36px; letter-spacing: -.02em; }
-  .bar .logo .mark { width: 68px; height: 68px; }
-}
+
