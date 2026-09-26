@@ -1,0 +1,351 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ortalama ve Anlık · MaLeTiLabs</title>
+<link rel="icon" href="../assets/marka/ikon-acik-tema.png" media="(prefers-color-scheme: light)">
+<link rel="icon" href="../assets/marka/ikon-koyu-tema.png" media="(prefers-color-scheme: dark)">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/katex-0.18.9/katex.min.css">
+<link rel="stylesheet" href="../assets/style.css?v=e4b3382c">
+<script src="../assets/katex-0.18.9/katex.min.js"></script>
+<script src="../assets/core.js?v=b689f43c"></script>
+<script src="../assets/vec.js?v=628245b8"></script>
+<style>@media (max-height: 720px) { .rules-list { line-height: 1.55; } }</style>
+</head>
+<body class="sim-page">
+
+<header class="bar">
+  <div class="wrap">
+    <a class="logo" href="../index.html">
+      <img class="mark light" src="../assets/marka/ikon-acik-tema.png" alt=""><img class="mark dark" src="../assets/marka/ikon-koyu-tema.png" alt="">
+      <span class="wm"><span class="l1">Ma</span><span class="l2">Le</span><span class="l3">Ti</span><em>Labs</em></span>
+    </a>
+    <nav><a href="../index.html#fizik1">← Fizik 1</a></nav>
+    <button class="theme-switch" data-theme-toggle role="switch" aria-checked="false" aria-label="Koyu tema"><span class="knob"><svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="4.5" fill="currentColor"/><path d="M12 1.5v2.5M12 20v2.5M4.2 4.2l1.8 1.8M18 18l1.8 1.8M1.5 12H4M20 12h2.5M4.2 19.8L6 18M18 6l1.8-1.8"/></svg><svg class="moon" viewBox="0 0 24 24"><path fill="currentColor" d="M20.5 14.3A8.5 8.5 0 0 1 9.7 3.5 8.5 8.5 0 1 0 20.5 14.3z"/></svg></span></button>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="sim-title">
+    <div><span class="tag">Fizik 1 · Hafta 02</span><h1 id="title">Ortalama ve Anlık Hız</h1></div>
+    <div class="sim-formula" id="formula"></div>
+  </div>
+
+  <div class="sim-layout">
+    <div class="stage" id="stage"><canvas id="cv"></canvas></div>
+
+    <aside class="panel">
+      <div class="seg" id="mode">
+        <button data-v="hiz">Hız</button>
+        <button data-v="ivme">İvme</button>
+      </div>
+      <div class="seg" id="preset" aria-label="Hareket">
+        <button data-v="hizlanan">Hızlanan</button>
+        <button data-v="donen">Dönen</button>
+        <button data-v="degisken">Değişken <i>a</i></button>
+      </div>
+      <div class="ctrl"><label><span>Başlangıç anı <i>t</i>₁</span><output id="ot1"></output></label>
+        <input type="range" id="t1" min="0" max="9" step="0.1"></div>
+      <div class="ctrl"><label><span>Aralık Δ<i>t</i></span><output id="odt"></output></label>
+        <input type="range" id="dt" min="0.01" max="5" step="0.01"></div>
+      <div class="calc" id="calc"></div>
+      <div class="rules"><span class="tag">Kurallar</span><div class="calc rules-list" id="rules"></div></div>
+      <div class="row">
+        <button class="btn" id="play">Oynat</button>
+        <button class="btn ghost" id="restart">Baştan</button>
+        <div class="seg speed" id="speed"><button data-v="0.5">0.5×</button><button data-v="1">1×</button></div>
+      </div>
+      <div class="row">
+        <button class="btn ghost" id="shrink">Δt → 0</button>
+        <button class="btn ghost" id="fs">Tam ekran</button>
+      </div>
+    </aside>
+  </div>
+</main>
+
+<script>
+const R = String.raw, TMAX = 10;
+// Hazır hareketler: x(t), v(t), a(t) (SI birimleri)
+const MOTIONS = {
+  hizlanan: { x: (t) => -9 + 0.2 * t * t, v: (t) => 0.4 * t, a: () => 0.4 },
+  donen:    { x: (t) => -8 + 6 * t - 0.6 * t * t, v: (t) => 6 - 1.2 * t, a: () => -1.2 },
+  degisken: { x: (t) => t ** 3 / 15 - 0.9 * t * t + 4 * t - 8, v: (t) => t * t / 5 - 1.8 * t + 4, a: (t) => 0.4 * t - 1.8, lift: true },
+};
+const S = urlState({ mod: "hiz", h: "degisken", t1: 2, dt: 4 });
+if (!MOTIONS[S.h]) S.h = "degisken";
+const M = () => MOTIONS[S.h];
+
+// Hız sekmesinde ana eğri x(t), ikincisi v(t); ivme sekmesinde ana eğri v(t), ikincisi a(t)
+const view = () => S.mod === "ivme"
+  ? { f: M().v, g: M().a, fl: "v", fu: "m/s", gl: "a", gu: "m/s²" }
+  : { f: M().x, g: M().v, fl: "x", fu: "m", gl: "v", gu: "m/s" };
+
+// --- Kontroller ---
+const t1In = document.getElementById("t1"), dtIn = document.getElementById("dt");
+const syncCtrls = () => {
+  S.dt = Math.min(S.dt, TMAX - S.t1);
+  t1In.value = S.t1; dtIn.value = S.dt; dtIn.max = Math.max(0.01, TMAX - S.t1).toFixed(2);
+  document.getElementById("ot1").textContent = `${(+S.t1).toFixed(1)} s`;
+  document.getElementById("odt").textContent = `${(+S.dt).toFixed(2)} s`;
+};
+let anim = 0, speed = 1;
+const playBtn = document.getElementById("play");
+const stop = () => { cancelAnimationFrame(anim); anim = 0; playBtn.textContent = "Oynat"; };
+// Oynat: araba t₁'den ileri gider, t₂ (ve Δt) zamanla büyür; kesen onunla birlikte döner
+playBtn.onclick = () => {
+  if (anim && playBtn.textContent === "Duraklat") { stop(); S.save(); return; }
+  stop();
+  if (S.t1 + S.dt >= TMAX - 1e-6) S.dt = 0.01;
+  playBtn.textContent = "Duraklat";
+  let last = performance.now();
+  const step = (now) => {
+    S.dt = Math.min(TMAX - S.t1, S.dt + (now - last) / 1000 * speed); last = now;
+    syncCtrls(); render();
+    if (S.t1 + S.dt < TMAX - 1e-6) anim = requestAnimationFrame(step); else { stop(); S.save(); }
+  };
+  anim = requestAnimationFrame(step);
+};
+document.getElementById("restart").onclick = () => { stop(); S.dt = 0.01; S.save(); syncCtrls(); render(); };
+segment("speed", () => String(speed), (v) => { speed = +v; });
+t1In.oninput = () => { stop(); S.t1 = +t1In.value; S.save(); syncCtrls(); render(); };
+dtIn.oninput = () => { stop(); S.dt = Math.max(0.01, +dtIn.value); S.save(); syncCtrls(); render(); };
+segment("mode", () => S.mod, (v) => { S.mod = v; S.save(); render(); });
+segment("preset", () => S.h, (v) => { S.h = v; S.save(); render(); });
+// Δt → 0: aralık üstel olarak küçülür, kesen teğete yaklaşır
+document.getElementById("shrink").onclick = () => {
+  stop();
+  let last = performance.now();
+  const step = (now) => {
+    S.dt = Math.max(0.01, S.dt * Math.exp(-(now - last) / 700)); last = now;
+    syncCtrls(); render();
+    if (S.dt > 0.01) anim = requestAnimationFrame(step); else { anim = 0; S.save(); }
+  };
+  anim = requestAnimationFrame(step);
+};
+document.getElementById("fs").onclick = () => FR.fullscreen(document.querySelector(".sim-layout"));
+
+// --- Çizim ---
+const { ctx, size } = FR.canvas(document.getElementById("cv"));
+function niceStep(range, n = 4) {
+  const raw = range / n, p = 10 ** Math.floor(Math.log10(raw)), m = raw / p;
+  return (m < 1.5 ? 1 : m < 3.5 ? 2 : m < 7.5 ? 5 : 10) * p;
+}
+const rangeOf = (f, pad) => {
+  let lo = Infinity, hi = -Infinity;
+  for (let k = 0; k <= 100; k++) { const y = f(k / 10); lo = Math.min(lo, y); hi = Math.max(hi, y); }
+  lo = Math.min(lo, 0); hi = Math.max(hi, 0);
+  const m = Math.max(pad, (hi - lo) * 0.12); return [lo - m, hi + m];
+};
+function axes(box, lo, hi, color, label, unit, c) {
+  const { x: gx, y: gy, w: gw, h: gh } = box;
+  const X = (tt) => gx + tt / TMAX * gw, Y = (v) => gy + gh - (v - lo) / (hi - lo) * gh;
+  const step = niceStep(hi - lo);
+  ctx.font = "12px 'JetBrains Mono', monospace"; ctx.textAlign = "right"; ctx.textBaseline = "middle";
+  for (let v = Math.ceil(lo / step) * step; v <= hi + 1e-9; v += step) {
+    const zero = Math.abs(v) < 1e-9;
+    ctx.strokeStyle = zero ? c.muted : c.line; ctx.lineWidth = zero ? 1.3 : 1;
+    ctx.beginPath(); ctx.moveTo(gx, Y(v)); ctx.lineTo(gx + gw, Y(v)); ctx.stroke();
+    ctx.fillStyle = c.muted; ctx.fillText(+v.toFixed(2), gx - 6, Y(v));
+  }
+  ctx.strokeStyle = c.line; ctx.lineWidth = 1; ctx.strokeRect(gx, gy, gw, gh);
+  ctx.textAlign = "left"; ctx.textBaseline = "top"; ctx.font = "italic 600 15px 'Instrument Sans', sans-serif"; ctx.fillStyle = color;
+  ctx.fillText(`${label} (${unit})`, gx + 8, gy + 6);
+  return { X, Y };
+}
+function curve(f, X, Y, color, width, box) {
+  ctx.save(); ctx.beginPath(); ctx.rect(box.x, box.y, box.w, box.h); ctx.clip();
+  ctx.strokeStyle = color; ctx.lineWidth = width; ctx.beginPath();
+  for (let k = 0; k <= 200; k++) { const tt = TMAX * k / 200; ctx.lineTo(X(tt), Y(f(tt))); }
+  ctx.stroke(); ctx.restore();
+}
+// (t0, y0) noktasından eğimi m olan doğru, kutu içinde
+function line(t0, y0, m, X, Y, box, color, dash, width = 2) {
+  ctx.save(); ctx.beginPath(); ctx.rect(box.x, box.y, box.w, box.h); ctx.clip();
+  ctx.strokeStyle = color; ctx.lineWidth = width; ctx.setLineDash(dash);
+  ctx.beginPath(); ctx.moveTo(X(0), Y(y0 - m * t0)); ctx.lineTo(X(TMAX), Y(y0 + m * (TMAX - t0))); ctx.stroke(); ctx.restore();
+}
+const dot = (x, y, color, r = 5) => { ctx.fillStyle = color; ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill(); };
+
+function draw() {
+  const { w: W, h: H } = size(), c = FR.colors(), V = view(), m = M();
+  ctx.clearRect(0, 0, W, H);
+  const t1 = +S.t1, t2 = t1 + +S.dt, L = 58, Rr = 18, gap = 14;
+
+  // Yol ("çakma 2B"). Hareket 1B'dir; yatay konum hep gerçek x.
+  //  • Yön değiştiren hareket: üstten görünüş; araba U dönüşüyle alt şeride geçer, burnu dönerek.
+  //  • Diğerleri: yandan görünüş. Değişken a'da araba durup çok az geri gelip yeniden ileri gittiği
+  //    aralıkta bir duvara dayanır; altındaki zemin onu üst kata kaldırır, hareket orada sürer.
+  const TURNS = [];                                    // v'nin işaret değiştirdiği anlar
+  for (let k = 2; k <= 1000; k++) {
+    const a = (k - 1) / 100 - 0.0031, b = k / 100 - 0.0031;   // kaydırma: kök tam ızgaraya düşüp v = 0 olmasın
+    if (m.v(a) * m.v(b) < 0) { let lo = a, hi = b; for (let i = 0; i < 40; i++) { const md = (lo + hi) / 2; m.v(lo) * m.v(md) <= 0 ? (hi = md) : (lo = md); } TURNS.push((lo + hi) / 2); }
+  }
+  const lift = m.lift && TURNS.length === 2;
+  const top = TURNS.length > 0 && !lift;               // üstten mi, yandan mı
+  const LANE = top ? 30 : 40, R = LANE / 2, TAU = 0.5, y0 = top ? 26 : 44, lanes = lift ? 1 : TURNS.length;
+  const rulerY = y0 + lanes * LANE + 22, trackH = rulerY + 30;
+  const [xlo, xhi] = [-12, 12], TX = (xx) => L + (Math.min(xhi, Math.max(xlo, xx)) - xlo) / (xhi - xlo) * (W - L - Rr);
+  const smooth = (u) => (u <= 0 ? 0 : u >= 1 ? 1 : u * u * (3 - 2 * u));
+  // t anında arabanın ekrandaki yeri
+  const pos = (tt) => {
+    let px = TX(m.x(tt)), py = y0;
+    if (lift) py = y0 + LANE - LANE * smooth((tt - TURNS[0]) / (TURNS[1] - TURNS[0]));
+    else for (const r of TURNS) {
+      const d = Math.sign(m.v(r - 1e-3)), ph = Math.PI * smooth((tt - r + TAU) / (2 * TAU));
+      px += d * R * Math.sin(ph); py += R * (1 - Math.cos(ph));
+    }
+    return [px, py];
+  };
+  // burnun yönü: yolun teğeti (hız ~0 iken hareket yönü)
+  const heading = (tt) => {
+    if (lift) return Math.sign(m.v(tt)) < 0 && (tt < TURNS[0] || tt > TURNS[1]) ? Math.PI : 0;
+    const [ax, ay] = pos(Math.max(0, tt - 0.01)), [bx, by] = pos(Math.min(TMAX, tt + 0.01));
+    if (Math.hypot(bx - ax, by - ay) > 0.05) return Math.atan2(by - ay, bx - ax);
+    return (Math.sign(m.v(tt)) || Math.sign(m.v(tt + 1e-3)) || 1) < 0 ? Math.PI : 0;
+  };
+  const route = (ta, tb, skipLift) => {
+    ctx.beginPath();
+    const n = Math.max(2, Math.ceil((tb - ta) / 0.01));
+    let pen = false;
+    for (let k = 0; k <= n; k++) {
+      const tt = ta + (tb - ta) * k / n;
+      if (skipLift && lift && tt > TURNS[0] && tt < TURNS[1]) { pen = false; continue; }
+      const [px, py] = pos(tt);
+      pen ? ctx.lineTo(px, py) : ctx.moveTo(px, py); pen = true;
+    }
+  };
+  ctx.lineCap = ctx.lineJoin = "round";
+  if (top) { ctx.strokeStyle = c.line; ctx.lineWidth = 18; route(0, TMAX, true); ctx.stroke(); }   // yol (üstten)
+  else {                                                                                       // zemin (yandan)
+    ctx.lineCap = "butt"; ctx.strokeStyle = c.muted; ctx.lineWidth = 2;
+    if (lift) {
+      const [sx] = pos(TURNS[0]), wx = sx + 22;
+      ctx.beginPath(); ctx.moveTo(L, y0 + LANE); ctx.lineTo(wx, y0 + LANE); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(wx, y0); ctx.lineTo(W - Rr, y0); ctx.stroke();
+    } else { ctx.beginPath(); ctx.moveTo(L, y0); ctx.lineTo(W - Rr, y0); ctx.stroke(); }
+  }
+  if (lift) {
+    // duvar: alt katta arabanın önünde; üst kat duvarın üstünden devam eder
+    const [sx] = pos(TURNS[0]), wx = sx + 22, lowY = y0 + LANE;
+    ctx.lineCap = "butt"; ctx.strokeStyle = c.muted; ctx.lineWidth = 6;
+    ctx.beginPath(); ctx.moveTo(wx + 3, lowY); ctx.lineTo(wx + 3, y0); ctx.stroke();
+    // kaldıran zemin: arabanın altındaki çizgi, arabayla birlikte yükselir
+    const [, ly] = pos(Math.min(Math.max(t2, TURNS[0]), TURNS[1]));
+    ctx.strokeStyle = c.ink; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(sx - 20, ly); ctx.lineTo(wx, ly); ctx.stroke();
+  }
+  ctx.lineCap = ctx.lineJoin = "round";
+  ctx.save(); if (!top) ctx.translate(0, 5);                                           // yandan: iz zeminin hemen altında
+  ctx.strokeStyle = c.accent; ctx.lineWidth = 3; route(t1, t2, false); ctx.stroke(); ctx.restore();   // t₁ → t₂ arası izlenen yol
+  ctx.lineCap = "butt"; ctx.lineJoin = "miter";
+  // cetvel (x ekseni)
+  ctx.strokeStyle = c.muted; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(L, rulerY); ctx.lineTo(W - Rr, rulerY); ctx.stroke();
+  ctx.font = "11px 'JetBrains Mono', monospace"; ctx.textAlign = "center"; ctx.textBaseline = "top"; ctx.fillStyle = c.muted;
+  for (let xx = xlo; xx <= xhi; xx += 4) { ctx.beginPath(); ctx.moveTo(TX(xx), rulerY - 4); ctx.lineTo(TX(xx), rulerY + 4); ctx.stroke(); ctx.fillText(`${xx}`, TX(xx), rulerY + 6); }
+  ctx.textAlign = "right"; ctx.fillText("x (m)", W - Rr, rulerY + 17);
+  // Araba. Üstten: burnu gittiği yönü gösterir, virajda döner; köşelerde 4 beyaz teker.
+  // Yandan: gövde zeminin üstünde, iki teker.
+  const car = (tt, color, alpha, lab) => {
+    const [px, py] = pos(tt);
+    ctx.save(); ctx.globalAlpha = alpha; ctx.fillStyle = color;
+    if (top) {
+      ctx.translate(px, py); ctx.rotate(heading(tt));
+      ctx.fillStyle = "#fff";                                                     // tekerler gövdenin altında
+      for (const [wx, wy] of [[-8, -7], [8, -7], [-8, 7], [8, 7]]) { ctx.beginPath(); ctx.arc(wx, wy, 3.5, 0, 7); ctx.fill(); }
+      ctx.fillStyle = color;
+      ctx.beginPath(); ctx.roundRect(-13, -7, 26, 14, 3); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(20, 0); ctx.lineTo(12, -6); ctx.lineTo(12, 6); ctx.fill();
+    } else {
+      ctx.beginPath(); ctx.roundRect(px - 14, py - 20, 28, 14, 4); ctx.fill();
+      ctx.fillStyle = c.ink; for (const dx of [-8, 8]) { ctx.beginPath(); ctx.arc(px + dx, py - 5, 3.5, 0, 7); ctx.fill(); }
+    }
+    ctx.restore();
+    ctx.fillStyle = color; ctx.font = "italic 600 13px 'Instrument Sans', sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "bottom";
+    ctx.fillText(lab, px, py - (top ? 13 : 23));
+  };
+  car(t1, c.muted, 0.7, "t₁");
+  car(t2, c.accent, 1, "t₂");
+
+  // Ana grafik (kesen + teğet) ve alttaki grafik (ortalama değer çizgisi)
+  const gw = W - L - Rr, avail = H - trackH - 34 - gap;
+  const b1 = { x: L, y: trackH, w: gw, h: avail * 0.6 }, b2 = { x: L, y: trackH + avail * 0.6 + gap, w: gw, h: avail * 0.4 };
+  const [fl, fh] = rangeOf(V.f, 1), [gl, gh] = rangeOf(V.g, 0.5);
+  const A = axes(b1, fl, fh, c.ink, V.fl, V.fu, c);
+  const y1 = V.f(t1), y2 = V.f(t2), avg = (y2 - y1) / (t2 - t1), inst = V.g(t1);
+  curve(V.f, A.X, A.Y, c.ink, 2.5, b1);
+  line(t1, y1, inst, A.X, A.Y, b1, c.accent2, [7, 5]);        // teğet: anlık
+  line(t1, y1, avg, A.X, A.Y, b1, c.accent, [], 2.2);         // kesen: ortalama
+  // Δt ve Δ(f) basamağı
+  ctx.strokeStyle = c.muted; ctx.lineWidth = 1.2; ctx.setLineDash([3, 3]);
+  ctx.beginPath(); ctx.moveTo(A.X(t1), A.Y(y1)); ctx.lineTo(A.X(t2), A.Y(y1)); ctx.lineTo(A.X(t2), A.Y(y2)); ctx.stroke(); ctx.setLineDash([]);
+  if (A.X(t2) - A.X(t1) > 28) {
+    ctx.fillStyle = c.muted; ctx.font = "italic 13px 'Instrument Sans', sans-serif"; ctx.textAlign = "center";
+    ctx.textBaseline = y2 >= y1 ? "top" : "bottom";
+    ctx.fillText("Δt", (A.X(t1) + A.X(t2)) / 2, A.Y(y1) + (y2 >= y1 ? 4 : -4));
+  }
+  if (Math.abs(A.Y(y2) - A.Y(y1)) > 22) {
+    ctx.fillStyle = c.muted; ctx.textAlign = "left"; ctx.textBaseline = "middle";
+    ctx.fillText("Δ" + V.fl, A.X(t2) + 6, (A.Y(y1) + A.Y(y2)) / 2);
+  }
+  dot(A.X(t1), A.Y(y1), c.accent2); dot(A.X(t2), A.Y(y2), c.accent);
+
+  const B = axes(b2, Math.min(gl, avg - 0.3), Math.max(gh, avg + 0.3), c.ink, V.gl, V.gu, c);
+  // eğri altında t₁…t₂ alanı = ortalama çizgisinin altındaki dikdörtgen
+  ctx.save(); ctx.globalAlpha = 0.18; ctx.fillStyle = c.accent; ctx.beginPath(); ctx.moveTo(B.X(t1), B.Y(0));
+  for (let k = 0; k <= 60; k++) { const tt = t1 + (t2 - t1) * k / 60; ctx.lineTo(B.X(tt), B.Y(V.g(tt))); }
+  ctx.lineTo(B.X(t2), B.Y(0)); ctx.closePath(); ctx.fill(); ctx.restore();
+  curve(V.g, B.X, B.Y, c.ink, 2.2, b2);
+  ctx.strokeStyle = c.accent; ctx.lineWidth = 2.2; ctx.beginPath(); ctx.moveTo(B.X(t1), B.Y(avg)); ctx.lineTo(B.X(t2), B.Y(avg)); ctx.stroke();
+  dot(B.X(t1), B.Y(inst), c.accent2);
+  ctx.font = "italic 600 13px 'Instrument Sans', sans-serif"; ctx.textBaseline = "bottom"; ctx.fillStyle = c.accent;
+  ctx.textAlign = B.X(t2) > b2.x + b2.w - 60 ? "right" : "left";
+  ctx.fillText(`ortalama ${V.gl}`, ctx.textAlign === "right" ? B.X(t2) - 4 : B.X(t2) + 6, B.Y(avg) - 3);
+
+  // zaman ekseni (iki grafikte)
+  ctx.fillStyle = c.muted; ctx.font = "12px 'JetBrains Mono', monospace"; ctx.textAlign = "center"; ctx.textBaseline = "top";
+  for (let s = 0; s <= TMAX; s += 2) ctx.fillText(s, b2.x + s / TMAX * b2.w, b2.y + b2.h + 5);
+  ctx.textAlign = "right"; ctx.fillText("t (s)", b2.x + b2.w, b2.y + b2.h + 19);
+}
+
+// --- Metin ---
+const RULES = {
+  hiz: [
+    R`**Ortalama hız** $=$ *kesenin eğimi:* $\bar v = \dfrac{\Delta x}{\Delta t}$`,
+    R`**Anlık hız** $=$ *teğetin eğimi:* $v = \lim\limits_{\Delta t\to 0}\dfrac{\Delta x}{\Delta t}$`,
+    R`$v$–$t$ *altındaki alan* $= \Delta x = \bar v\,\Delta t$`,
+  ],
+  ivme: [
+    R`**Ortalama ivme** $=$ *kesenin eğimi:* $\bar a = \dfrac{\Delta v}{\Delta t}$`,
+    R`**Anlık ivme** $=$ *teğetin eğimi:* $a = \lim\limits_{\Delta t\to 0}\dfrac{\Delta v}{\Delta t}$`,
+    R`$a$–$t$ *altındaki alan* $= \Delta v = \bar a\,\Delta t$`,
+  ],
+};
+function render() {
+  const iv = S.mod === "ivme", V = view(), t1 = +S.t1, t2 = t1 + +S.dt;
+  document.getElementById("title").textContent = iv ? "Ortalama ve Anlık İvme" : "Ortalama ve Anlık Hız";
+  document.title = (iv ? "Ortalama ve Anlık İvme" : "Ortalama ve Anlık Hız") + " · MaLeTiLabs";
+  // küçük Δt'de 2 basamak yetmez (0.04 / 0.01 ≠ 3.59 görünür): basamak sayısı Δt ile artar
+  const d = S.dt < 0.1 ? 4 : 2, f = (n, k = d) => (Math.abs(n) < 0.5 * 10 ** -k ? 0 : n).toFixed(k), p = (n) => (n < 0 ? `(${f(n)})` : f(n));
+  const y1 = V.f(t1), y2 = V.f(t2), avg = (y2 - y1) / (t2 - t1), inst = V.g(t1);
+  const q = V.fl, g = V.gl, u = iv ? R`\text{m/s}^2` : R`\text{m/s}`;
+  setEqs(document.getElementById("formula"), [iv ? R`$\bar a = \dfrac{\Delta v}{\Delta t} \;\xrightarrow{\;\Delta t\to 0\;}\; a = \dfrac{dv}{dt}$`
+                                                  : R`$\bar v = \dfrac{\Delta x}{\Delta t} \;\xrightarrow{\;\Delta t\to 0\;}\; v = \dfrac{dx}{dt}$`]);
+  setEqs(document.getElementById("calc"), [
+    `$\\Delta ${q} = ${q}_2 - ${q}_1 = ${f(y2)} - ${p(y1)} = ${f(y2 - y1)}$`,
+    `$\\cA{\\bar ${g}} = \\dfrac{\\Delta ${q}}{\\Delta t} = \\dfrac{${f(y2 - y1)}}{${f(t2 - t1)}} = \\cA{\\mathbf{${f(avg, 2)}}}\\ ${u}$`,
+    `$\\cB{${g}(t_1)} = \\cB{\\mathbf{${f(inst, 2)}}}\\ ${u}$ *(teğet)*   *fark:* $|\\cA{\\bar ${g}} - \\cB{${g}}| = ${f(Math.abs(avg - inst), 2)}$`,
+  ]);
+  setEqs(document.getElementById("rules"), RULES[S.mod]);
+  draw();
+}
+new ResizeObserver(draw).observe(document.getElementById("cv"));
+new MutationObserver(draw).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+document.fonts?.addEventListener("loadingdone", draw);
+syncCtrls();
+render();
+</script>
+</body>
+</html>

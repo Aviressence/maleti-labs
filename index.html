@@ -8,8 +8,8 @@
 <link rel="icon" href="assets/marka/ikon-koyu-tema.png" media="(prefers-color-scheme: dark)">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=63ee05e5">
-<script src="assets/core.js?v=efb2a239"></script>
+<link rel="stylesheet" href="assets/style.css?v=e4b3382c">
+<script src="assets/core.js?v=b689f43c"></script>
 </head>
 <body>
 
@@ -77,16 +77,34 @@ const COURSES = {
       { grup: "Fizik ve Ölçme", sims: [{ ad: "Birimler ve ön ekler", url: "sims/birimler.html" }, { ad: "Boyut analizi", url: "sims/boyut-analizi.html" }, { ad: "Anlamlı basamak ve belirsizlik", url: "sims/anlamli-basamak.html" }] },
       { grup: "Vektörler", sims: [{ ad: "Vektör toplama", url: "sims/vektor-toplama.html" }, { ad: "Bileşenler", url: "sims/vektor-bilesenleri.html" }, { ad: "Skaler & vektörel çarpım", url: "sims/vektor-carpim.html" }] },
     ]],
-    ["Hareket, Hız ve İvme", [{ ad: "x–t / v–t / a–t grafikleri", url: "sims/hareket-grafikleri.html" }, "Ortalama ve anlık hız"]],
-    ["Tek Boyutlu ve İki Boyutlu Hareket", ["Serbest düşme", "Eğik atış", "Bağıl hareket"]],
+    ["Hareket, Hız ve İvme", [
+      { grup: "Hız", sims: [{ ad: "Yer değiştirme ve alınan yol", url: "sims/yer-degistirme.html" }, { ad: "Ortalama ve anlık hız", url: "sims/ortalama-anlik.html?mod=hiz" }] },
+      { grup: "İvme", sims: [{ ad: "Ortalama ve anlık ivme", url: "sims/ortalama-anlik.html?mod=ivme" }, { ad: "x–t / v–t / a–t grafikleri", url: "sims/hareket-grafikleri.html" }] },
+    ]],
+    ["Tek Boyutlu ve İki Boyutlu Hareket", [
+      { grup: "Tek Boyutlu Hareket", sims: [{ ad: "Sabit ivmeli hareket", url: "sims/sabit-ivme.html" }, { ad: "Serbest düşme", url: "sims/serbest-dusme.html" }] },
+      { grup: "İki Boyutlu Hareket", sims: ["Eğik atış", "Bağıl hareket"] },
+    ]],
   ],
   dalgalar: [
-    ["Titreşim Hareketinin Temel Kavramları", [{ ad: "Sarkaç", url: "sims/sarkac.html" }, "Yay–kütle", "BHH ↔ dairesel hareket"]],
-    ["Dalga Tipleri, 1B İlerleyen Dalgalar, Üst Üste Binme ve Girişim", ["Enine / boyuna dalga", "Atma ilerlemesi", "Süperpozisyon", { ad: "Dalga simülatörü", url: "sims/dalga-simulatoru/index.html" }]],
-    ["Yansıma ve Geçiş, Harmonik Dalgalar, Sicimde Dalgalar, Enerji, Dalga Denklemi", ["Sabit / serbest uçta yansıma", "Ortam değişiminde geçiş", "Harmonik dalga (λ, k, ω)"]],
+    ["Titreşim Hareketinin Temel Kavramları", [
+      { grup: "Salınıcılar", sims: [{ ad: "Sarkaç", url: "sims/sarkac.html" }, "Yay–kütle"] },
+      { grup: "Basit Harmonik Hareket", sims: ["BHH ↔ dairesel hareket", "Konum, hız, ivme ve faz"] },
+    ]],
+    ["Dalga Tipleri, 1B İlerleyen Dalgalar, Üst Üste Binme ve Girişim", [
+      { grup: "Dalga Tipleri", sims: ["Enine / boyuna dalga"] },
+      { grup: "İlerleyen Dalgalar", sims: ["Atma ilerlemesi"] },
+      { grup: "Üst Üste Binme ve Girişim", sims: ["Süperpozisyon", { ad: "Dalga simülatörü", url: "sims/dalga-simulatoru/index.html" }] },
+    ]],
+    ["Yansıma ve Geçiş, Harmonik Dalgalar, Sicimde Dalgalar, Enerji, Dalga Denklemi", [
+      { grup: "Yansıma ve Geçiş", sims: ["Sabit / serbest uçta yansıma", "Ortam değişiminde geçiş"] },
+      { grup: "Harmonik Dalgalar", sims: ["Harmonik dalga (λ, k, ω)", "Sicimde dalga hızı"] },
+      { grup: "Enerji ve Dalga Denklemi", sims: ["Dalganın taşıdığı enerji", "Lineer dalga denklemi"] },
+    ]],
   ],
 };
 
+// Hazır simülasyonu olmayan kategori kapalı gösterilir ("yakında").
 // Hazır simülasyon: kendi sayfası. Henüz yapılmamış olan (düz metin): iskelet sayfası + "(yakında)".
 const chip = (s, ders, hafta) => (typeof s === "object"
   ? `<a class="chip" href="${s.url}">${s.ad}</a>`
@@ -98,9 +116,11 @@ document.querySelectorAll("[data-course]").forEach((box) => {
     const c = (s) => chip(s, ders, i + 1);
     const groups = sims.filter((s) => s.grup);
     const top = groups.length
-      ? groups.map((g, k) => `<button class="cat" aria-expanded="false" data-g="${k}">${g.grup}</button>`).join("")
+      ? groups.map((g, k) => (g.sims.some((x) => typeof x === "object")
+        ? `<button class="cat" aria-expanded="false" data-g="${k}">${g.grup}</button>`
+        : `<button class="cat" disabled>${g.grup} <small>(yakında)</small></button>`)).join("")
       : sims.map(c).join("");
-    const subs = groups.map((g, k) => `<div class="week-sub" data-g="${k}" hidden><span class="sub-label">${g.grup}</span>${g.sims.map(c).join("")}</div>`).join("");
+    const subs = groups.map((g, k) => !g.sims.some((x) => typeof x === "object") ? "" : `<div class="week-sub" data-g="${k}" hidden><span class="sub-label">${g.grup}</span>${g.sims.map(c).join("")}</div>`).join("");
     return `<div class="week" style="animation-delay:${i * 40}ms">
       <span class="no">H${String(i + 1).padStart(2, "0")}</span>
       <span class="topic">${topic}</span>

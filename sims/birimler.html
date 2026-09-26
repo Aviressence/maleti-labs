@@ -9,9 +9,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../assets/katex-0.18.9/katex.min.css">
-<link rel="stylesheet" href="../assets/style.css?v=63ee05e5">
+<link rel="stylesheet" href="../assets/style.css?v=e4b3382c">
 <script src="../assets/katex-0.18.9/katex.min.js"></script>
-<script src="../assets/core.js?v=efb2a239"></script>
+<script src="../assets/core.js?v=b689f43c"></script>
 <script src="../assets/vec.js?v=628245b8"></script>
 <style>
   .ptable { width: 100%; border-collapse: collapse; font-size: 14.5px; }
@@ -124,8 +124,9 @@ const EXAMPLES = [
    ["insan", 7e4], ["otomobil", 1.5e6], ["mavi balina", 1.5e8], ["Eyfel Kulesi", 7.3e9]],
   [["işlemci döngüsü", 3e-10], ["ışığın 1 m gitmesi", 3.3e-9], ["sesin 1 m gitmesi", 2.9e-3], ["kalp atışı", 0.8],
    ["1 saat", 3.6e3], ["1 gün", 8.64e4], ["1 yıl", 3.15e7], ["insan ömrü", 2.5e9], ["yazının icadından beri", 1.6e11]],
-  [["motor protein", 5e-12], ["H atomu: e⁻–p⁺ çekimi", 8.2e-8], ["sivrisinek ağırlığı", 2.5e-5], ["elma ağırlığı", 1],
-   ["insan ağırlığı", 700], ["otomobil ağırlığı", 1.5e4], ["jet motoru itişi", 2.5e5], ["Saturn V itişi", 3.4e7]],
+  [["motor protein", 5e-12], ["H atomu: e⁻–p⁺ çekimi", 8.2e-8], ["sivrisinek ağırlığı", 2.5e-5], ["zayıf kuvvet", 1e-2, 1],
+   ["elma ağırlığı", 1], ["elektromanyetik", 2.3e2, 1], ["insan ağırlığı", 700], ["güçlü kuvvet", 1e4, 1],
+   ["jet motoru itişi", 2.5e5], ["Saturn V itişi", 3.4e7]],
   [["uçan sivrisinek", 3e-7], ["tuşa basmak", 2e-3], ["elmayı 1 m kaldırmak", 1], ["bir bardak çay kaynatmak", 3.3e4],
    ["günlük besin", 8.4e6], ["1 L benzin", 3.4e7], ["yıldırım", 1e9], ["1 ton TNT", 4.2e9]],
   [["kol saati", 1e-6], ["LED", 6e-2], ["insan beyni", 20], ["dinlenen insan", 100], ["su ısıtıcısı", 2e3],
@@ -257,18 +258,19 @@ function draw() {
 
   // Örneklerin yerleşimi önceden hesaplanır: zikzak (biri altta, sonraki üstte); aynı tarafta
   // komşusuyla çakışan etiket çakışmadığı ilk kata (en fazla 3) çıkar. Alan/hacimde konum log10(v)/p.
-  ctx.font = "13px 'Instrument Sans', sans-serif";
+  ctx.font = "500 13px 'Instrument Sans', sans-serif";
   const TIERS = 3, TIER_H = 17;
   const right = { up: Array(TIERS).fill(-1e9), down: Array(TIERS).fill(-1e9) };
-  const placed = ex.filter(([, v]) => Math.abs(Math.log10(v) / u.p) <= 12.6).map(([name, v], i) => {
+  const placed = ex.filter(([, v]) => Math.abs(Math.log10(v) / u.p) <= 12.6).map(([name, v, temel], i) => {
     const x = X(Math.log10(v) / u.p), side = i % 2 ? "up" : "down", half = ctx.measureText(name).width / 2 + 6;
     let tier = right[side].findIndex((r) => x - half >= r);
     if (tier < 0) tier = right[side].indexOf(Math.min(...right[side]));
     right[side][tier] = x + half;
-    return { name, x, up: side === "up", tier };
+    return { name, x, up: side === "up", tier, temel };
   });
   const maxTier = (up) => Math.max(0, ...placed.filter((p) => p.up === up).map((p) => p.tier));
-  const downNeed = 40 + maxTier(false) * TIER_H + 16;      // eksenden alttaki son satırın sonuna
+  const legend = ex.some((e) => e[2]) ? 40 : 0;             // temel kuvvet açıklaması için alt boşluk
+  const downNeed = 40 + maxTier(false) * TIER_H + 16 + legend; // eksenden alttaki son satırın sonuna
   const upNeed = 50 + maxTier(true) * TIER_H + 19;         // eksenden üstteki son satırın üstüne (+ boşluk)
   // eksen, alttaki etiketler sığacak kadar aşağıda; üstte yay için olabildiğince yer kalır
   const axisY = showEx ? Math.min(Math.round(H * 0.62), H - downNeed - 4) : Math.round(H * 0.58);
@@ -314,15 +316,23 @@ function draw() {
   }
   // gerçek dünya örnekleri (yerleri yukarıda hesaplandı)
   if (showEx) {
-    ctx.font = "13px 'Instrument Sans', sans-serif"; ctx.textAlign = "center";
-    placed.forEach(({ name, x, up, tier }) => {
+    ctx.font = "500 13px 'Instrument Sans', sans-serif"; ctx.textAlign = "center";
+    placed.forEach(({ name, x, up, tier, temel }) => {
       const ty = up ? axisY - 50 - tier * TIER_H : axisY + 40 + tier * TIER_H; // taban (üstte) / tepe (altta)
       ctx.fillStyle = c.muted; ctx.beginPath(); ctx.arc(x, axisY, 3, 0, 7); ctx.fill();
       ctx.strokeStyle = c.line; ctx.lineWidth = 1; ctx.setLineDash([2, 3]);
       ctx.beginPath(); ctx.moveTo(x, axisY + (up ? -4 : 4)); ctx.lineTo(x, up ? ty + 2 : ty - 2); ctx.stroke(); ctx.setLineDash([]);
       ctx.textBaseline = up ? "bottom" : "top";
-      ctx.fillStyle = c.ink; ctx.fillText(name, x, ty);
+      ctx.fillStyle = temel ? c.ok : c.ink; ctx.fillText(name, x, ty);
     });
+    // Dört temel kuvvet (iki proton, 1 fm): kütleçekimi şeridin çok dışında kalır
+    if (legend) {
+      ctx.textBaseline = "bottom"; ctx.textAlign = "left"; ctx.fillStyle = c.ok;
+      ctx.font = "500 13px 'Instrument Sans', sans-serif";
+      ctx.fillText("Yeşil: temel kuvvetler (iki proton arası, 1 fm uzaklıkta)", 14, H - 28);
+      ctx.fillStyle = c.muted;
+      ctx.fillText("← kütleçekimi ≈ 2 × 10⁻³⁴ N: şeridin 22 basamak solunda", 14, H - 10);
+    }
   }
 }
 // "10" + üst simge; (cx, by) ortalanmış taban çizgisi

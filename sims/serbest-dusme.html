@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Serbest Düşme · MaLeTiLabs</title>
+<link rel="icon" href="../assets/marka/ikon-acik-tema.png" media="(prefers-color-scheme: light)">
+<link rel="icon" href="../assets/marka/ikon-koyu-tema.png" media="(prefers-color-scheme: dark)">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/katex-0.18.9/katex.min.css">
+<link rel="stylesheet" href="../assets/style.css?v=e4b3382c">
+<script src="../assets/katex-0.18.9/katex.min.js"></script>
+<script src="../assets/core.js?v=b689f43c"></script>
+<script src="../assets/vec.js?v=628245b8"></script>
+</head>
+<body class="sim-page">
+
+<header class="bar">
+  <div class="wrap">
+    <a class="logo" href="../index.html">
+      <img class="mark light" src="../assets/marka/ikon-acik-tema.png" alt=""><img class="mark dark" src="../assets/marka/ikon-koyu-tema.png" alt="">
+      <span class="wm"><span class="l1">Ma</span><span class="l2">Le</span><span class="l3">Ti</span><em>Labs</em></span>
+    </a>
+    <nav><a href="../index.html#fizik1">← Fizik 1</a></nav>
+    <button class="theme-switch" data-theme-toggle role="switch" aria-checked="false" aria-label="Koyu tema"><span class="knob"><svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="4.5" fill="currentColor"/><path d="M12 1.5v2.5M12 20v2.5M4.2 4.2l1.8 1.8M18 18l1.8 1.8M1.5 12H4M20 12h2.5M4.2 19.8L6 18M18 6l1.8-1.8"/></svg><svg class="moon" viewBox="0 0 24 24"><path fill="currentColor" d="M20.5 14.3A8.5 8.5 0 0 1 9.7 3.5 8.5 8.5 0 1 0 20.5 14.3z"/></svg></span></button>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="sim-title">
+    <div><span class="tag">Fizik 1 · Hafta 03</span><h1>Serbest Düşme ve Düşey Atış</h1></div>
+    <div class="sim-formula" id="formula"></div>
+  </div>
+
+  <div class="sim-layout">
+    <div class="stage" id="stage"><canvas id="cv"></canvas></div>
+
+    <aside class="panel">
+      <div class="seg" id="planet" aria-label="Gezegen">
+        <button data-v="dunya">Dünya</button>
+        <button data-v="ay">Ay</button>
+        <button data-v="mars">Mars</button>
+      </div>
+      <div class="ctrl"><label><span>Başlangıç yüksekliği <i>h</i>₀</span><output id="oh0"></output></label>
+        <input type="range" id="h0" min="0" max="50" step="1"></div>
+      <div class="ctrl"><label><span>İlk hız <i>v</i>₀ <small>(+ yukarı)</small></span><output id="ov0"></output></label>
+        <input type="range" id="v0" min="-10" max="20" step="1"></div>
+      <div class="ctrl"><label><span>Zaman <i>t</i></span><output id="ot"></output></label>
+        <input type="range" id="t" min="0" max="1" step="0.01"></div>
+      <div class="calc" id="calc"></div>
+      <div class="rules"><span class="tag">Kurallar</span><div class="calc rules-list" id="rules"></div></div>
+      <div class="row">
+        <button class="btn" id="play">Oynat</button>
+        <button class="btn ghost" id="restart">Baştan</button>
+        <div class="seg speed" id="speed"><button data-v="0.5">0.5×</button><button data-v="1">1×</button></div>
+        <button class="btn ghost icon" id="fs" title="Tam ekran" aria-label="Tam ekran"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
+      </div>
+    </aside>
+  </div>
+</main>
+
+<script>
+const R = String.raw;
+const PLANETS = { dunya: { g: 9.81, ad: "Dünya" }, ay: { g: 1.62, ad: "Ay" }, mars: { g: 3.71, ad: "Mars" } };
+const S = urlState({ gz: "dunya", h0: 20, v0: 10 });
+if (!PLANETS[S.gz]) S.gz = "dunya";
+let t = 0, running = false, last = 0, speed = 1;
+const g = () => PLANETS[S.gz].g;
+const y = (tt) => S.h0 + S.v0 * tt - 0.5 * g() * tt * tt;
+const v = (tt) => S.v0 - g() * tt;
+// yere çarpma anı (y = 0'ın pozitif kökü)
+const tEnd = () => Math.max(0.01, (S.v0 + Math.sqrt(S.v0 * S.v0 + 2 * g() * S.h0)) / g());
+
+// --- Kontroller ---
+const tIn = document.getElementById("t"), tOut = document.getElementById("ot"), playBtn = document.getElementById("play");
+const setT = (val) => {
+  const T = tEnd(); t = Math.min(T, Math.max(0, val));
+  tIn.max = T.toFixed(2); tIn.value = t; tOut.textContent = `${t.toFixed(2)} s`;
+};
+const FMT = { h0: (n) => `${n} m`, v0: (n) => `${n} m/s` };
+for (const k of ["h0", "v0"]) {
+  const inp = document.getElementById(k), out = document.getElementById("o" + k);
+  inp.value = S[k];
+  const sync = () => (out.textContent = FMT[k](+inp.value));
+  inp.oninput = () => { S[k] = +inp.value; S.save(); sync(); setT(t); render(); };
+  sync();
+}
+segment("planet", () => S.gz, (val) => { S.gz = val; S.save(); setT(t); render(); });
+const pause = () => { running = false; playBtn.textContent = "Oynat"; };
+tIn.oninput = () => { pause(); setT(+tIn.value); render(); };
+playBtn.onclick = () => {
+  if (running) return pause();
+  if (t >= tEnd() - 1e-6) setT(0);
+  running = true; playBtn.textContent = "Duraklat"; last = performance.now(); requestAnimationFrame(loop);
+};
+document.getElementById("restart").onclick = () => { pause(); setT(0); render(); };
+segment("speed", () => String(speed), (val) => { speed = +val; });
+document.getElementById("fs").onclick = () => FR.fullscreen(document.querySelector(".sim-layout"));
+function loop(now) {
+  if (!running) return;
+  setT(t + (now - last) / 1000 * speed); last = now;
+  if (t >= tEnd() - 1e-6) pause();
+  render();
+  if (running) requestAnimationFrame(loop);
+}
+
+// --- Çizim ---
+const { ctx, size } = FR.canvas(document.getElementById("cv"));
+function niceStep(range, n = 4) {
+  const raw = range / n, p = 10 ** Math.floor(Math.log10(raw)), m = raw / p;
+  return (m < 1.5 ? 1 : m < 3.5 ? 2 : m < 7.5 ? 5 : 10) * p;
+}
+function axes(box, T, lo, hi, color, label, unit, c) {
+  const { x: gx, y: gy, w: gw, h: gh } = box;
+  const X = (tt) => gx + tt / T * gw, Y = (val) => gy + gh - (val - lo) / (hi - lo) * gh;
+  const step = niceStep(hi - lo);
+  ctx.font = "12px 'JetBrains Mono', monospace"; ctx.textAlign = "right"; ctx.textBaseline = "middle";
+  for (let val = Math.ceil(lo / step) * step; val <= hi + 1e-9; val += step) {
+    const zero = Math.abs(val) < 1e-9;
+    ctx.strokeStyle = zero ? c.muted : c.line; ctx.lineWidth = zero ? 1.3 : 1;
+    ctx.beginPath(); ctx.moveTo(gx, Y(val)); ctx.lineTo(gx + gw, Y(val)); ctx.stroke();
+    ctx.fillStyle = c.muted; ctx.fillText(+val.toFixed(2), gx - 6, Y(val));
+  }
+  ctx.strokeStyle = c.line; ctx.lineWidth = 1; ctx.strokeRect(gx, gy, gw, gh);
+  ctx.textAlign = "left"; ctx.textBaseline = "top"; ctx.font = "italic 600 15px 'Instrument Sans', sans-serif"; ctx.fillStyle = color;
+  ctx.fillText(`${label} (${unit})`, gx + 8, gy + 6);
+  return { X, Y };
+}
+function curve(f, X, Y, color, box, t0, t1, alpha, width) {
+  ctx.save(); ctx.beginPath(); ctx.rect(box.x, box.y, box.w, box.h); ctx.clip();
+  ctx.globalAlpha = alpha; ctx.strokeStyle = color; ctx.lineWidth = width; ctx.beginPath();
+  for (let k = 0; k <= 200; k++) { const tt = t0 + (t1 - t0) * k / 200; ctx.lineTo(X(tt), Y(f(tt))); }
+  ctx.stroke(); ctx.restore();
+}
+function vArrow(x0, y0, len, color, lab) {
+  if (Math.abs(len) < 3) return;
+  const y1 = y0 + len, s = Math.sign(len);
+  ctx.strokeStyle = ctx.fillStyle = color; ctx.lineWidth = 2.5;
+  ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x0, y1 - s * 4); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x0, y1 + s * 2); ctx.lineTo(x0 - 5, y1 - s * 7); ctx.lineTo(x0 + 5, y1 - s * 7); ctx.closePath(); ctx.fill();
+  ctx.font = "italic 600 13px 'Instrument Sans', sans-serif"; ctx.textAlign = "left"; ctx.textBaseline = "middle";
+  ctx.fillText(lab, x0 + 7, y0 + len / 2);
+}
+
+function draw() {
+  const { w: W, h: H } = size(), c = FR.colors(), T = tEnd(), G = g();
+  ctx.clearRect(0, 0, W, H);
+  const hmax = S.v0 > 0 ? S.h0 + S.v0 * S.v0 / (2 * G) : S.h0;
+
+  // Sol sütun: yükseklik cetveli, zemin, top ve çoklu flaş görüntüleri
+  const colW = Math.min(230, Math.max(150, W * 0.28)), top = 30, ground = H - 44;
+  const ymax = Math.max(5, hmax * 1.08), Yc = (q) => ground - q / ymax * (ground - top);
+  const rx = 50, bx = rx + (colW - rx) / 2 + 4;
+  const st = niceStep(ymax, 5);
+  ctx.font = "12px 'JetBrains Mono', monospace"; ctx.textAlign = "right"; ctx.textBaseline = "middle";
+  ctx.strokeStyle = c.muted; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(rx, top); ctx.lineTo(rx, ground); ctx.stroke();
+  for (let q = 0; q <= ymax + 1e-9; q += st) { ctx.beginPath(); ctx.moveTo(rx - 4, Yc(q)); ctx.lineTo(rx + 4, Yc(q)); ctx.stroke(); ctx.fillStyle = c.muted; ctx.fillText(+q.toFixed(1), rx - 8, Yc(q)); }
+  ctx.save(); ctx.translate(14, (top + ground) / 2); ctx.rotate(-Math.PI / 2); ctx.textAlign = "center"; ctx.fillText("y (m)", 0, 0); ctx.restore();
+  ctx.strokeStyle = c.ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(rx, ground); ctx.lineTo(colW, ground); ctx.stroke();
+  // başlangıç seviyesi ve tepe
+  ctx.setLineDash([4, 4]); ctx.lineWidth = 1; ctx.strokeStyle = c.muted;
+  ctx.beginPath(); ctx.moveTo(rx, Yc(S.h0)); ctx.lineTo(colW, Yc(S.h0)); ctx.stroke();
+  if (S.v0 > 0) { ctx.strokeStyle = c.ok; ctx.beginPath(); ctx.moveTo(rx, Yc(hmax)); ctx.lineTo(colW, Yc(hmax)); ctx.stroke(); }
+  ctx.setLineDash([]);
+  ctx.font = "italic 600 12px 'Instrument Sans', sans-serif"; ctx.textAlign = "right"; ctx.textBaseline = "bottom";
+  if (S.v0 > 0) { ctx.fillStyle = c.ok; ctx.fillText("tepe", colW, Yc(hmax) - 2); }
+  // çoklu flaş: eşit aralıklarla (toplam ~12–16 kare); çıkışta sola, inişte sağa kaydırılır (üst üste binmesin)
+  const tTop = Math.max(0, S.v0 / G), fl = [0.25, 0.5, 1, 2, 5].find((q) => T / q <= 16) || 5;
+  ctx.fillStyle = c.muted; ctx.font = "12px 'JetBrains Mono', monospace"; ctx.textAlign = "left"; ctx.textBaseline = "top";
+  ctx.fillText(`flaş: ${String(fl).replace(".", ",")} s`, rx + 6, ground + 8);
+  for (let k = 0; k * fl <= t + 1e-9; k++) {
+    const tk = k * fl, dx = S.v0 > 0 ? (tk < tTop ? -14 : 14) : 0;
+    ctx.globalAlpha = 0.28; ctx.fillStyle = c.accent; ctx.beginPath(); ctx.arc(bx + dx, Yc(y(tk)), 8, 0, 7); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+  const ballX = bx + (S.v0 > 0 ? (t < tTop ? -14 : 14) : 0), ballY = Yc(y(t));
+  ctx.fillStyle = c.accent; ctx.beginPath(); ctx.arc(ballX, ballY, 10, 0, 7); ctx.fill();
+  // hız (değişir) ve ivme (hep g, aşağı) okları
+  const pxPerMs = Math.min(4.5, (ground - top) / Math.max(10, Math.abs(S.v0), Math.sqrt(S.v0 * S.v0 + 2 * G * S.h0)) * 0.45);
+  vArrow(ballX + 20, ballY, -v(t) * pxPerMs, c.accent2, "v");
+  vArrow(ballX - 34, ballY, 34, c.ok, "g");
+
+  // Sağ: y–t ve v–t
+  const L = colW + 58, Rr = 18, gw = W - L - Rr, gap = 14, avail = H - top - 34 - gap;
+  const b1 = { x: L, y: top, w: gw, h: avail * 0.5 }, b2 = { x: L, y: top + avail * 0.5 + gap, w: gw, h: avail * 0.5 };
+  const A = axes(b1, T, 0, ymax, c.accent, "y", "m", c);
+  curve(y, A.X, A.Y, c.accent, b1, 0, T, 0.25, 2); if (t > 0) curve(y, A.X, A.Y, c.accent, b1, 0, t, 1, 2.8);
+  ctx.fillStyle = c.accent; ctx.beginPath(); ctx.arc(A.X(t), A.Y(y(t)), 5, 0, 7); ctx.fill();
+  const vend = v(T), vlo = Math.min(vend, S.v0, 0), vhi = Math.max(vend, S.v0, 0), vm = Math.max(1, (vhi - vlo) * 0.12);
+  const B = axes(b2, T, vlo - vm, vhi + vm, c.accent2, "v", "m/s", c);
+  curve(v, B.X, B.Y, c.accent2, b2, 0, T, 0.25, 2); if (t > 0) curve(v, B.X, B.Y, c.accent2, b2, 0, t, 1, 2.8);
+  ctx.fillStyle = c.accent2; ctx.beginPath(); ctx.arc(B.X(t), B.Y(v(t)), 5, 0, 7); ctx.fill();
+  // tepe anı: v = 0 (ama a = −g)
+  if (S.v0 > 0) {
+    ctx.strokeStyle = c.ok; ctx.setLineDash([4, 4]); ctx.lineWidth = 1.2;
+    for (const b of [b1, b2]) { const xx = b.x + tTop / T * b.w; ctx.beginPath(); ctx.moveTo(xx, b.y); ctx.lineTo(xx, b.y + b.h); ctx.stroke(); }
+    ctx.setLineDash([]);
+  }
+  for (const b of [b1, b2]) { ctx.strokeStyle = c.muted; ctx.setLineDash([3, 3]); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(b.x + t / T * b.w, b.y); ctx.lineTo(b.x + t / T * b.w, b.y + b.h); ctx.stroke(); ctx.setLineDash([]); }
+  const ts = niceStep(T, 5);
+  ctx.fillStyle = c.muted; ctx.font = "12px 'JetBrains Mono', monospace"; ctx.textAlign = "center"; ctx.textBaseline = "top";
+  for (let s = 0; s <= T + 1e-9; s += ts) ctx.fillText(+s.toFixed(2), b2.x + s / T * b2.w, b2.y + b2.h + 5);
+  ctx.textAlign = "right"; ctx.fillText("t (s)", b2.x + b2.w, b2.y + b2.h + 19);
+}
+
+// --- Metin ---
+setEqs(document.getElementById("formula"), [R`$y = h_0 + v_0 t - \tfrac12 g t^2 \qquad v = v_0 - g t$`]);
+setEqs(document.getElementById("rules"), [
+  R`*Hava direnci yok; ivme hep aşağı:* $a = -g$`,
+  R`**Tepede** $v = 0$ *ama ivme yine* $-g$`,
+  R`*Aynı yüksekliğe aynı süratle döner;* $v_{\text{yer}} = -\sqrt{v_0^2 + 2 g h_0}$`,
+]);
+function render() {
+  const G = g(), f = (n) => (Math.abs(n) < 0.005 ? 0 : n).toFixed(2), tt = t.toFixed(2), T = tEnd();
+  const lines = [
+    `$\\cA{y} = ${S.h0} + (${S.v0})(${tt}) - \\tfrac12(${G})(${tt})^2 = \\cA{\\mathbf{${f(y(t))}}}\\ \\text{m}$`,
+    `$\\cB{v} = ${S.v0} - (${G})(${tt}) = \\cB{\\mathbf{${f(v(t))}}}\\ \\text{m/s}$`,
+    S.v0 > 0
+      ? `*Tepe:* $t = \\dfrac{v_0}{g} = ${f(S.v0 / G)}\\ \\text{s},\\ h_{\\max} = ${f(S.h0 + S.v0 * S.v0 / (2 * G))}\\ \\text{m}$`
+      : `*Tepe yok:* $v_0 \\le 0$ *, cisim hep iner*`,
+    `*Yere çarpma:* $t = ${f(T)}\\ \\text{s},\\ v = ${f(v(T))}\\ \\text{m/s}$`,
+  ];
+  setEqs(document.getElementById("calc"), lines);
+  draw();
+}
+new ResizeObserver(draw).observe(document.getElementById("cv"));
+new MutationObserver(draw).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+document.fonts?.addEventListener("loadingdone", draw);
+setT(0);
+render();
+</script>
+</body>
+</html>

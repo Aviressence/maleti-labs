@@ -35,15 +35,20 @@ const FR = (() => {
              accent: v("--accent"), accent2: v("--accent-2"), ok: v("--ok") };
   }
 
-  // Retina-uyumlu canvas; boyut değişince yeniden ölçekler
+  // Retina-uyumlu canvas; boyut değişince yeniden ölçekler.
+  // Tampon, ekrandaki gerçek piksel sayısına eşitlenir (kesirli CSS boyutunda esneyip bulanıklaşmasın).
   function canvas(el) {
     const ctx = el.getContext("2d");
-    const fit = () => {
+    const fit = (entry) => {
       const r = el.getBoundingClientRect(), d = devicePixelRatio || 1;
-      el.width = r.width * d; el.height = r.height * d;
-      ctx.setTransform(d, 0, 0, d, 0, 0);
+      const b = entry?.devicePixelContentBoxSize?.[0];
+      const w = b ? b.inlineSize : Math.round(r.width * d), h = b ? b.blockSize : Math.round(r.height * d);
+      if (!r.width || !r.height) return;
+      el.width = w; el.height = h;
+      ctx.setTransform(w / r.width, 0, 0, h / r.height, 0, 0);
     };
-    new ResizeObserver(fit).observe(el);
+    const ro = new ResizeObserver(([e]) => fit(e));
+    try { ro.observe(el, { box: "device-pixel-content-box" }); } catch { ro.observe(el); }
     fit();
     return { ctx, size: () => ({ w: el.clientWidth, h: el.clientHeight }) };
   }
