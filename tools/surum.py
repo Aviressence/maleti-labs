@@ -25,4 +25,14 @@ for page in [ROOT / "index.html", ROOT / "404.html", *sorted((ROOT / "sims").glo
         page.write_text(new, encoding="utf-8", newline="")
         changed += 1
         print("güncellendi:", page.relative_to(ROOT))
+# Dalga simülatörü: kendi klasöründeki js/ ve css/ dosyaları
+WAVE = ROOT / "sims" / "dalga-simulatoru"
+WREF = re.compile(r'((?:src|href)=")((?:js|css|fonts)/[\w.-]+\.(?:js|css))(?:\?v=\w+)?"')
+page = WAVE / "index.html"
+text = page.read_text(encoding="utf-8")
+new = WREF.sub(lambda m: f'{m.group(1)}{m.group(2)}?v={hashlib.sha1((WAVE / m.group(2)).read_bytes()).hexdigest()[:8]}"', text)
+if new != text:
+    page.write_text(new, encoding="utf-8", newline="")
+    changed += 1
+    print("güncellendi:", page.relative_to(ROOT))
 print(f"{changed} sayfa güncellendi")

@@ -145,13 +145,13 @@ function makeDefaultParameters(isMobile) {
   return {
     pause: false,
     nextFrame: 0,
-    showGradient: true,
+    showGradient: false,
     toolbarSide: 'left',
     LOD: isMobile ? 3 : 2,
     energy: false,
     boundary: 0,
     initialCondition: defaultInitialCondition(WaveType.Plane),
-    grid: { show: false, snap: true, divisions: 12, color: 'white' },
+    grid: { show: true, snap: true, divisions: 12, color: 'black' },
     phasedArray: defaultPhasedArray(),
     video: { seconds: 10, fps: 60, speed: 1, fromStart: true },
     view: { zoom: 1, centreX: 0.5, centreY: 0.5 },
@@ -307,22 +307,22 @@ function sanitizeParameters(raw, options) {
   const out = {
     pause: false,
     nextFrame: 0,
-    showGradient: bool(raw.showGradient, d.showGradient),
+    showGradient: false,                   // renk skalası gösterilmez
     toolbarSide: raw.toolbarSide === 'right' ? 'right' : 'left',
     LOD: options.isMobile ? 3 : oneOf(raw.LOD, LOD_VALUES, d.LOD),
     energy: bool(raw.energy, d.energy),
     boundary: oneOf(raw.boundary, [0, 1, 2], d.boundary),
     initialCondition: sanitizeInitialCondition(raw.initialCondition),
     grid: {
-      show: bool(grid.show, d.grid.show),
+      show: true,                           // ızgara hep açık ve siyah
       snap: bool(grid.snap, d.grid.snap),
       divisions: normaliseDivisions(grid.divisions ?? d.grid.divisions),
-      color: oneOf(grid.color, GRID_COLORS, d.grid.color)
+      color: 'black'
     },
     phasedArray: sanitizePhasedArray(raw.phasedArray),
     video: sanitizeVideo(raw.video, d.video),
     view: clampView(raw.view && typeof raw.view === 'object' ? raw.view : d.view),
-    aCeil: num(raw.aCeil, LIMITS.aCeil, d.aCeil),
+    aCeil: 1,                              // duvar eşiği sabit (ayarı kaldırıldı)
     speedDivider: oneOf(raw.speedDivider, SPEED_VALUES, d.speedDivider)
   }
   const shape = sanitizeShape(raw.backgroundShape)

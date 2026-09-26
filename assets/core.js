@@ -74,8 +74,20 @@ const FR = (() => {
     return vals;
   }
 
+  // Tam ekran (Safari/iPad: webkit önekli). iPhone Safari öğe tam ekranını hiç desteklemez: düğme gizlenir.
+  const fsSupported = () => !!(document.fullscreenEnabled || document.webkitFullscreenEnabled);
   function fullscreen(el) {
-    document.fullscreenElement ? document.exitFullscreen() : el.requestFullscreen?.();
+    if (document.fullscreenElement || document.webkitFullscreenElement) (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+    else (el.requestFullscreen || el.webkitRequestFullscreen)?.call(el);
+  }
+
+  // Eski Safari (iOS < 16.4) canvas'ta roundRect bilmez: basit yedek
+  if (typeof CanvasRenderingContext2D !== "undefined" && !CanvasRenderingContext2D.prototype.roundRect) {
+    CanvasRenderingContext2D.prototype.roundRect = function (x, y, w, h, r = 0) {
+      r = Math.max(0, Math.min(Array.isArray(r) ? r[0] || 0 : r, Math.abs(w) / 2, Math.abs(h) / 2));
+      this.moveTo(x + r, y); this.arcTo(x + w, y, x + w, y + h, r); this.arcTo(x + w, y + h, x, y + h, r);
+      this.arcTo(x, y + h, x, y, r); this.arcTo(x, y, x + w, y, r); this.closePath();
+    };
   }
 
   document.addEventListener("click", (e) => {
@@ -87,6 +99,19 @@ const FR = (() => {
   const GH_ICON = '<svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>';
   document.addEventListener("DOMContentLoaded", () => {
     const sim = document.body.classList.contains("sim-page");
+    if (!fsSupported()) document.querySelectorAll("#fs").forEach((b) => (b.hidden = true));
+    // Dikey telefonda "yan çevir" önerisi (CSS yalnız dar + dikey ekranda gösterir); kapatılınca oturum boyunca gelmez
+    const layout = document.querySelector(".sim-layout");
+    let dismissed = false;
+    try { dismissed = sessionStorage.getItem("fr-rotate") === "1"; } catch {}
+    if (sim && layout && !dismissed) {
+      const hint = document.createElement("div");
+      hint.className = "rotate-hint";
+      hint.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="2.5" width="10" height="17" rx="2"/><path d="M20.5 14a8.5 8.5 0 0 1-6 7.5M3.5 10a8.5 8.5 0 0 1 6-7.5"/></svg>' +
+        '<span>Daha rahat görmek için telefonu yan çevirin.</span><button type="button" aria-label="Kapat">×</button>';
+      hint.querySelector("button").onclick = () => { hint.remove(); try { sessionStorage.setItem("fr-rotate", "1"); } catch {} };
+      layout.before(hint);
+    }
     const el = document.createElement(sim ? "div" : "footer");
     el.className = sim ? "gh-corner" : "site-foot";
     el.innerHTML = `<a class="gh" href="${GH}" target="_blank" rel="noopener" aria-label="GitHub" title="GitHub">${GH_ICON}</a>` +

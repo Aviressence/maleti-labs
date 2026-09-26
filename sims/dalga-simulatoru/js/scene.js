@@ -64,6 +64,8 @@ class SceneCanvas {
     this.video = new VideoRecorder()
     /** True while a video render owns the simulation. */
     this.rendering = false
+    /** True while the portrait-phone rotate gate covers the page: the simulation waits. */
+    this.hold = false
 
     this.bindEvents()
   }
@@ -415,6 +417,14 @@ class SceneCanvas {
     this.events.viewChanged()
   }
 
+  /** Zoom buttons: zoom about the centre of the current view. */
+  zoomBy(factor) {
+    const v = this.view
+    this.params.view = clampView({ zoom: clamp(v.zoom * factor, 1, MAX_ZOOM), centreX: v.centreX, centreY: v.centreY })
+    this.refreshOverlay()
+    this.events.viewChanged()
+  }
+
   resetView() {
     this.params.view = { zoom: 1, centreX: 0.5, centreY: 0.5 }
     this.refreshOverlay()
@@ -747,7 +757,7 @@ class SceneCanvas {
     // Until both images have decoded there is nothing sensible to simulate:
     // an unbound background samples as alpha 1, i.e. wall everywhere.
     const ready = this.textures.background && this.textures.gradient
-    if (ready && ((!params.pause && this.renders % params.speedDivider === 0) || params.nextFrame > 0)) {
+    if (ready && !this.hold && ((!params.pause && this.renders % params.speedDivider === 0) || params.nextFrame > 0)) {
       this.drawScene(3)
       if (params.nextFrame > 0) {
         params.nextFrame--

@@ -9,9 +9,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../assets/katex-0.18.9/katex.min.css">
-<link rel="stylesheet" href="../assets/style.css?v=1df4f872">
+<link rel="stylesheet" href="../assets/style.css?v=a3054e01">
 <script src="../assets/katex-0.18.9/katex.min.js"></script>
-<script src="../assets/core.js?v=b689f43c"></script>
+<script src="../assets/core.js?v=40d9d8dc"></script>
 <script src="../assets/vec.js?v=628245b8"></script>
 </head>
 <body class="sim-page">
@@ -198,7 +198,7 @@ function draw() {
     ctx.setLineDash([]);
   }
   for (const b of [b1, b2]) { ctx.strokeStyle = c.muted; ctx.setLineDash([3, 3]); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(b.x + t / T * b.w, b.y); ctx.lineTo(b.x + t / T * b.w, b.y + b.h); ctx.stroke(); ctx.setLineDash([]); }
-  const ts = niceStep(T, 5);
+  const ts = niceStep(T, Math.max(2, Math.min(5, Math.floor(gw / 55))));
   ctx.fillStyle = c.muted; ctx.font = "12px 'JetBrains Mono', monospace"; ctx.textAlign = "center"; ctx.textBaseline = "top";
   for (let s = 0; s <= T + 1e-9; s += ts) ctx.fillText(+s.toFixed(2), b2.x + s / T * b2.w, b2.y + b2.h + 5);
   ctx.textAlign = "right"; ctx.fillText("t (s)", b2.x + b2.w, b2.y + b2.h + 19);

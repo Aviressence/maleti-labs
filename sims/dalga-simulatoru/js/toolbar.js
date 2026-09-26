@@ -285,10 +285,8 @@ class Toolbar {
       app.refresh()
     })
     this.$('btn-reset-view').addEventListener('click', () => app.scene.resetView())
-    this.$('btn-png').addEventListener('click', () => app.scene.requestScreenshot())
-    this.$('btn-record').addEventListener('click', () => app.toggleRecording())
-    this.$('btn-render').addEventListener('click', () => app.renderVideo())
-    this.$('btn-share').addEventListener('click', () => this.copyShareLink())
+    this.$('btn-zoom-in').addEventListener('click', () => app.scene.zoomBy(1.25))
+    this.$('btn-zoom-out').addEventListener('click', () => app.scene.zoomBy(1 / 1.25))
     this.$('btn-add-source').addEventListener('click', () => {
       const sources = this.params.phasedArray.sources
       if (sources.length < MAX_SOURCES) {
@@ -301,16 +299,6 @@ class Toolbar {
         app.resetAll()
       }
     })
-  }
-
-  async copyShareLink() {
-    const ok = await Share.copyToClipboard(Share.buildLink(this.params))
-    const button = this.$('btn-share')
-    button.textContent = ok ? 'Link copied' : 'Copy failed'
-    clearTimeout(this.shareTimer)
-    this.shareTimer = setTimeout(() => {
-      button.textContent = 'Copy link to this scene'
-    }, 2500)
   }
 
   // ------------------------------------------------ background and gradient
@@ -641,9 +629,7 @@ class Toolbar {
       ? Shapes.describe(params.backgroundShape)
       : (params.backgroundImage?.name ?? ASSETS.backgrounds.lens.name)
     this.$('gradient-name').textContent = params.gradientImage?.name ?? Object.values(ASSETS.gradients)[0].name
-    this.$('share-warning').hidden = !Share.hasUnshareableContent(params)
 
-    this.renderRecording()
 
     const paused = params.pause
     const pause = this.$('btn-pause')
@@ -656,33 +642,6 @@ class Toolbar {
     dock.querySelector('use').setAttribute('href', right ? '#i-chevron-left' : '#i-chevron-right')
     dock.title = right ? 'Move panel to the left' : 'Move panel to the right'
     dock.setAttribute('aria-label', dock.title)
-  }
-
-  /** Record button label, with a running timer while recording. */
-  renderRecording() {
-    const button = this.$('btn-record')
-    const video = this.app.scene.video
-    if (!VideoRenderer.supported) {
-      this.$('btn-render').disabled = true
-      this.$('btn-render').title = 'This browser cannot encode video; use Record live'
-    }
-    if (!VideoRecorder.supported) {
-      button.disabled = true
-      button.title = 'This browser cannot record video'
-      return
-    }
-    const seconds = Math.floor(video.elapsed)
-    button.textContent = video.recording
-      ? `Stop recording ${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`
-      : 'Record live'
-    button.classList.toggle('recording', video.recording)
-    button.setAttribute('aria-pressed', String(video.recording))
-  }
-
-  showVideoHint(text) {
-    const hint = this.$('video-hint')
-    hint.textContent = text
-    hint.hidden = !text
   }
 
   renderLabels() {
