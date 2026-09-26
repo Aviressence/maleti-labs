@@ -49,6 +49,8 @@ sims/             Simülasyon sayfaları
 docs/             Ders müfredatları
 ```
 
+`assets/` içindeki bir dosya değiştiyse commit'ten önce `python tools/surum.py` çalıştırılır. Betik sayfalardaki bağlantılara içerik özetini (`?v=...`) yazar; böylece tarayıcılar eski dosyayı önbellekten kullanmaz.
+
 Yeni bir simülasyon `sims/` klasörüne eklenir. Ana sayfada görünmesi için `index.html` içindeki `COURSES` listesinde ilgili haftaya `{ ad, url }` yazılır.
 
 ## Lisans

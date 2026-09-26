@@ -6,9 +6,9 @@
 <title>Vektörün Bileşenleri · MaLeTiLabs</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../assets/style.css">
-<script src="../assets/core.js"></script>
-<script src="../assets/vec.js"></script>
+<link rel="stylesheet" href="../assets/style.css?v=7e847c89">
+<script src="../assets/core.js?v=a0c8a4df"></script>
+<script src="../assets/vec.js?v=088ad2f8"></script>
 </head>
 <body>
 
@@ -36,6 +36,7 @@
       <label class="check"><input type="checkbox" id="unit"> Birim vektörler (î, ĵ)</label>
       <label class="check"><input type="checkbox" id="snap" checked> Izgaraya yapıştır</label>
       <div class="calc" id="calc"></div>
+      <div class="rules"><span class="tag">Kurallar</span><div class="calc rules-list" id="rules"></div></div>
       <div class="row">
         <button class="btn ghost" id="reset">Sıfırla</button>
         <button class="btn ghost" id="fs">Tam ekran</button>
@@ -51,12 +52,19 @@ const unitCb = document.getElementById("unit"), snap = document.getElementById("
 unitCb.checked = S.birim === 1;
 unitCb.onchange = () => { S.birim = unitCb.checked ? 1 : 0; S.save(); };
 document.getElementById("reset").onclick = () => { S.ax = 4; S.ay = 3; S.save(); };
-document.getElementById("fs").onclick = () => FR.fullscreen(document.getElementById("stage"));
+document.getElementById("fs").onclick = () => FR.fullscreen(document.querySelector(".sim-layout"));
 
 const P = Plane(document.getElementById("cv"));
 P.snap = () => snap.checked;
 P.draggable(() => [{ id: "A", p: { x: S.ax, y: S.ay } }], (id, p) => { S.ax = p.x; S.ay = p.y; }, S.save);
 const calc = document.getElementById("calc"), zero = { x: 0, y: 0 };
+setEqs(document.getElementById("rules"), [
+  "Aₓ = |A| cos θ,  A_y = |A| sin θ",
+  "|A| = √(Aₓ² + A_y²)",
+  "tan θ = A_y / Aₓ",
+  "Aₓ < 0 ise θ = arctan(A_y / Aₓ) + 180°",
+  "|î| = |ĵ| = 1,  î ⊥ ĵ",
+]);
 
 function frame() {
   P.layout(0.4, 0.65);
@@ -75,11 +83,14 @@ function frame() {
   P.handle(A, c.ink);
 
   const f = V.fmt, t = th.toFixed(1);
-  calc.innerHTML = m < 0.005 ? "A = 0" :
-    `|A| = √(Aₓ² + A_y²) = <b>${f(m)}</b><br>θ = <b>${t}°</b><br>` +
-    `<span style="color:${c.accent}">Aₓ</span> = |A| cos θ = ${f(m)} · cos ${t}° = <b>${f(A.x)}</b><br>` +
-    `<span style="color:${c.accent2}">A_y</span> = |A| sin θ = ${f(m)} · sin ${t}° = <b>${f(A.y)}</b><br>` +
-    `A = <b>${f(A.x)}</b> î + <b>${f(A.y)}</b> ĵ`;
+  const ax = `<span style="color:${c.accent}">Aₓ</span>`, ay = `<span style="color:${c.accent2}">A_y</span>`;
+  setEqs(calc, m < 0.005 ? ["A = 0"] : [
+    `|A| = √(Aₓ² + A_y²) = <b>${f(m)}</b>`,
+    `θ = <b>${t}°</b>`,
+    `${ax} = |A| cos θ = ${f(m)} · cos ${t}° = <b>${f(A.x)}</b>`,
+    `${ay} = |A| sin θ = ${f(m)} · sin ${t}° = <b>${f(A.y)}</b>`,
+    `A = <b>${f(A.x)}</b> î + <b>${f(A.y)}</b> ĵ`,
+  ]);
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);

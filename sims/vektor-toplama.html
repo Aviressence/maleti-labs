@@ -6,9 +6,9 @@
 <title>Vektör Toplama · MaLeTiLabs</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../assets/style.css">
-<script src="../assets/core.js"></script>
-<script src="../assets/vec.js"></script>
+<link rel="stylesheet" href="../assets/style.css?v=7e847c89">
+<script src="../assets/core.js?v=a0c8a4df"></script>
+<script src="../assets/vec.js?v=088ad2f8"></script>
 </head>
 <body>
 
@@ -57,6 +57,8 @@
         <thead><tr><th></th><th>x</th><th>y</th><th>|v|</th><th>θ</th></tr></thead>
         <tbody id="tbl"></tbody>
       </table>
+      <div class="calc" id="calc"></div>
+      <div class="rules"><span class="tag">Kurallar</span><div class="calc rules-list" id="rules"></div></div>
 
       <div class="row">
         <button class="btn ghost" id="reset">Sıfırla</button>
@@ -76,7 +78,7 @@ comp.onchange = () => { S.bilesen = comp.checked ? 1 : 0; S.save(); };
 segment("mode", () => S.yontem, (v) => { S.yontem = v; S.save(); });
 segment("op", () => S.islem, (v) => { S.islem = v; S.save(); });
 document.getElementById("reset").onclick = () => { Object.assign(S, { ax: 4, ay: 2, bx: 1, by: 4 }); S.save(); };
-document.getElementById("fs").onclick = () => FR.fullscreen(document.getElementById("stage"));
+document.getElementById("fs").onclick = () => FR.fullscreen(document.querySelector(".sim-layout"));
 
 const P = Plane(document.getElementById("cv"));
 P.snap = () => snap.checked;
@@ -94,6 +96,7 @@ P.draggable(
 );
 
 const tbl = document.getElementById("tbl"), formula = document.getElementById("formula");
+const calc = document.getElementById("calc"), rules = document.getElementById("rules");
 const zero = { x: 0, y: 0 };
 
 function frame() {
@@ -126,6 +129,25 @@ function frame() {
   const row = (name, v, col) =>
     `<tr><td><span class="sw" style="background:${col}"></span>${name}</td><td>${V.fmt(v.x)}</td><td>${V.fmt(v.y)}</td><td>${V.fmt(V.mag(v))}</td><td>${V.mag(v) < 0.005 ? "–" : V.ang(v).toFixed(1) + "°"}</td></tr>`;
   tbl.innerHTML = row("A", a, cA) + row("B", B(), cB) + row("R", R, cR);
+
+  const f = V.fmt, s = S.islem === "sub" ? "−" : "+";
+  setEqs(calc, [
+    `Rₓ = Aₓ ${s} Bₓ = ${f(a.x)} ${s} (${f(S.bx)}) = <b>${f(R.x)}</b>`,
+    `R_y = A_y ${s} B_y = ${f(a.y)} ${s} (${f(S.by)}) = <b>${f(R.y)}</b>`,
+    `|R| = √(Rₓ² + R_y²) = <b>${f(V.mag(R))}</b>`,
+    `θ = <b>${V.mag(R) < 0.005 ? "–" : V.ang(R).toFixed(1) + "°"}</b>`,
+  ]);
+  setEqs(rules, S.islem === "sub" ? [
+    "A − B = A + (−B)",
+    "−B: B ile aynı büyüklük, ters yön",
+    "A − B ≠ B − A,  B − A = −(A − B)",
+    "Rₓ = Aₓ − Bₓ,  R_y = A_y − B_y",
+  ] : [
+    "A + B = B + A  (değişme)",
+    "(A + B) + C = A + (B + C)  (birleşme)",
+    "Rₓ = Aₓ + Bₓ,  R_y = A_y + B_y",
+    "|A + B| ≤ |A| + |B|",
+  ]);
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);

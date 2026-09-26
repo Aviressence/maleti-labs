@@ -6,8 +6,8 @@
 <title>Basit Sarkaç · MaLeTiLabs</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../assets/style.css">
-<script src="../assets/core.js"></script>
+<link rel="stylesheet" href="../assets/style.css?v=7e847c89">
+<script src="../assets/core.js?v=a0c8a4df"></script>
 </head>
 <body>
 
@@ -70,7 +70,7 @@ document.querySelectorAll("input[data-param]").forEach((i) =>
   i.addEventListener("input", () => (i.dataset.param === "th" || i.dataset.param === "L") && reset()));
 document.getElementById("reset").onclick = reset;
 document.getElementById("play").onclick = (e) => { running = !running; e.target.textContent = running ? "Duraklat" : "Oynat"; };
-document.getElementById("fs").onclick = () => FR.fullscreen(document.getElementById("stage"));
+document.getElementById("fs").onclick = () => FR.fullscreen(document.querySelector(".sim-layout"));
 
 // RK4 tek adım
 function step(dt) {
