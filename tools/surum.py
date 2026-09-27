@@ -1,7 +1,7 @@
 """Ortak dosya bağlantılarına içerik özeti ekler: assets/vec.js -> assets/vec.js?v=1a2b3c4d
 
 Dosya değişince adresi de değişir; tarayıcı önbellekteki eski sürümü kullanamaz.
-Her commit'ten önce çalıştırın:  python tools/surum.py
+Her commit'ten önce çalıştırın:  python tools/surum.py   (sitemap.xml de burada güncellenir)
 """
 import hashlib
 import pathlib
@@ -36,3 +36,34 @@ if new != text:
     changed += 1
     print("güncellendi:", page.relative_to(ROOT))
 print(f"{changed} sayfa güncellendi")
+
+# Site haritası (sitemap.xml): ana sayfa, simülasyonlar ve dalga simülatörü.
+# Adresler Cloudflare'in uzantısız biçiminde; lastmod dosyanın son commit tarihi (yoksa bugün).
+import datetime
+import subprocess
+
+SITE = "https://maletilabs.quatressence.dev"
+HARIC = {"yakinda.html"}                     # iskelet sayfa, parametreyle açılır
+
+
+def son_tarih(path):
+    try:
+        out = subprocess.run(["git", "log", "-1", "--format=%cs", "--", str(path)], cwd=ROOT,
+                             capture_output=True, text=True, check=True).stdout.strip()
+        return out or datetime.date.today().isoformat()
+    except (OSError, subprocess.CalledProcessError):
+        return datetime.date.today().isoformat()
+
+
+girdiler = [("/", ROOT / "index.html", "1.0")]
+girdiler += [(f"/sims/{p.stem}", p, "0.8") for p in sorted((ROOT / "sims").glob("*.html")) if p.name not in HARIC]
+girdiler.append(("/sims/dalga-simulatoru/", WAVE / "index.html", "0.9"))
+xml = ['<?xml version="1.0" encoding="UTF-8"?>', '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
+for yol, dosya, onc in girdiler:
+    xml.append(f"  <url><loc>{SITE}{yol}</loc><lastmod>{son_tarih(dosya)}</lastmod><priority>{onc}</priority></url>")
+xml.append("</urlset>\n")
+harita = ROOT / "sitemap.xml"
+yeni = "\n".join(xml)
+if not harita.exists() or harita.read_text(encoding="utf-8") != yeni:
+    harita.write_text(yeni, encoding="utf-8", newline="\n")
+    print("güncellendi: sitemap.xml")
