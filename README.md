@@ -54,6 +54,10 @@ docs/             Ders müfredatları
 
 `assets/` içindeki bir dosya değiştiyse commit'ten önce `python tools/surum.py` çalıştırılır. Betik sayfalardaki bağlantılara içerik özetini (`?v=...`) yazar; böylece tarayıcılar eski dosyayı önbellekten kullanmaz. Aynı betik `sitemap.xml` dosyasını da yeniden üretir; yeni simülasyon eklenince haritaya kendiliğinden girer.
 
+### Yapay zekâ ajanları için Markdown
+
+`Accept: text/markdown` başlığıyla gelen isteklere sayfanın `md/` altındaki Markdown özeti döner (`functions/_middleware.js`, Cloudflare Pages Functions; yalnız `_routes.json` içindeki yollarda çalışır). Tarayıcılar normal HTML alır. Yeni simülasyon eklenince `md/sims/<ad>.md` ve `md/index.md` de güncellenir.
+
 Yeni bir simülasyon `sims/` klasörüne eklenir. Ana sayfada görünmesi için `index.html` içindeki `COURSES` listesinde ilgili haftaya `{ ad, url }` yazılır.
 
 ## Lisans

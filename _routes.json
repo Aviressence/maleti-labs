@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "include": ["/", "/index", "/index.html", "/sims/*"],
+  "exclude": [
+    "/sims/dalga-simulatoru/js/*",
+    "/sims/dalga-simulatoru/css/*",
+    "/sims/dalga-simulatoru/fonts/*",
+    "/sims/dalga-simulatoru/assets/*"
+  ]
+}
